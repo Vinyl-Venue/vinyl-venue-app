@@ -1,10 +1,57 @@
-import { Link } from 'react-router-dom'
+import { useState } from 'react'
+import { useNavigate, Link } from 'react-router-dom'
+import { supabase } from './supabaseClient'
 
 function SignUpPage() {
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [errorMessage, setErrorMessage] = useState('')
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const navigate = useNavigate()
+
+  async function handleSubmit(event) {
+    event.preventDefault()
+    setErrorMessage('')
+    setIsSubmitting(true)
+
+    const { data, error } = await supabase.auth.signUp({
+      email: email,
+      password: password
+    })
+
+    setIsSubmitting(false)
+
+    if (error) {
+      setErrorMessage(error.message)
+      return
+    }
+
+    navigate('/dashboard')
+  }
+
   return (
     <div className="auth-page">
       <h2>Sign up</h2>
-      <p>Real authentication is coming in a future lesson.</p>
+      <form className="auth-form" onSubmit={handleSubmit}>
+        <input
+          type="email"
+          placeholder="Email"
+          value={email}
+          onChange={(event) => setEmail(event.target.value)}
+          required
+        />
+        <input
+          type="password"
+          placeholder="Password"
+          value={password}
+          onChange={(event) => setPassword(event.target.value)}
+          required
+        />
+        {errorMessage && <p className="auth-error">{errorMessage}</p>}
+        <button type="submit" disabled={isSubmitting}>
+          {isSubmitting ? 'Creating account...' : 'Sign up'}
+        </button>
+      </form>
       <Link to="/">Back to home</Link>
     </div>
   )
