@@ -4,6 +4,7 @@ import LandingPage from './LandingPage'
 import SignInPage from './SignInPage'
 import SignUpPage from './SignUpPage'
 import DashboardPage from './DashboardPage'
+import { supabase } from './supabaseClient'
 
 function App() {
   return (
