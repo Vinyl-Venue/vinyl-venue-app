@@ -1,4 +1,9 @@
 function AlbumModal({ album, onClose }) {
+  const hasPressingDetails =
+    album.label || album.pressingCountry || album.matrixNumber || album.deadwax ||
+    album.sleeveCondition || album.mediaCondition ||
+    (album.specialTags && album.specialTags.length > 0)
+
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-content" onClick={(event) => event.stopPropagation()}>
@@ -12,14 +17,20 @@ function AlbumModal({ album, onClose }) {
         <p className="modal-artist">{album.artist}</p>
         <p className="modal-meta">
           {album.year || 'Year unknown'} · {album.genre || 'Genre unknown'}
+          {album.subgenre ? ` (${album.subgenre})` : ''}
         </p>
 
-        {(album.label || album.pressingCountry || album.matrixNumber || album.deadwax) && (
+        {hasPressingDetails && (
           <div className="modal-pressing-details">
+            {album.sleeveCondition && <p><strong>Sleeve condition:</strong> {album.sleeveCondition}</p>}
+            {album.mediaCondition && <p><strong>Media condition:</strong> {album.mediaCondition}</p>}
             {album.label && <p><strong>Label:</strong> {album.label}</p>}
             {album.pressingCountry && <p><strong>Pressing country:</strong> {album.pressingCountry}</p>}
             {album.matrixNumber && <p><strong>Matrix number:</strong> {album.matrixNumber}</p>}
             {album.deadwax && <p><strong>Deadwax / runout:</strong> {album.deadwax}</p>}
+            {album.specialTags && album.specialTags.length > 0 && (
+              <p><strong>Special:</strong> {album.specialTags.join(', ')}</p>
+            )}
           </div>
         )}
       </div>

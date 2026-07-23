@@ -36,6 +36,7 @@ p {
 .nav-links {
   display: flex;
   gap: 20px;
+  align-items: center;
 }
 
 .nav-links a {
@@ -48,6 +49,116 @@ p {
 
 .nav-links a:hover {
   color: var(--color-accent);
+}
+
+.logo-link {
+  text-decoration: none;
+}
+
+.user-email {
+  color: var(--color-text-muted);
+  font-family: sans-serif;
+  font-size: 0.9rem;
+}
+
+.signout-button {
+  background: none;
+  border: 1px solid var(--color-border);
+  color: var(--color-text-muted);
+  padding: 6px 14px;
+  border-radius: 4px;
+  font-family: sans-serif;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+/* ===== Landing page ===== */
+.landing-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.landing-content {
+  text-align: center;
+}
+
+.landing-content h1 {
+  font-size: 3rem;
+}
+
+.landing-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  margin-top: 24px;
+}
+
+.landing-button {
+  padding: 10px 24px;
+  border-radius: 4px;
+  font-family: sans-serif;
+  font-size: 0.95rem;
+  text-decoration: none;
+}
+
+.landing-button.primary {
+  background-color: var(--color-accent);
+  color: var(--color-bg);
+}
+
+.landing-button.secondary {
+  border: 1px solid var(--color-border);
+  color: var(--color-text-muted);
+}
+
+/* ===== Auth pages ===== */
+.auth-page {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+
+.auth-page a {
+  color: var(--color-accent);
+}
+
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 280px;
+}
+
+.auth-form input {
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  color: var(--color-text);
+  padding: 10px 12px;
+  border-radius: 4px;
+  font-family: sans-serif;
+  font-size: 0.9rem;
+}
+
+.auth-form button {
+  background-color: var(--color-accent);
+  color: var(--color-bg);
+  border: none;
+  padding: 10px;
+  border-radius: 4px;
+  font-family: sans-serif;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.auth-error {
+  color: #d97757;
+  font-size: 0.85rem;
+  margin: 0;
 }
 
 /* ===== Shelf / record grid ===== */
@@ -179,6 +290,16 @@ p {
   font-size: 0.9rem;
 }
 
+.add-album-form select {
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  color: var(--color-text);
+  padding: 8px 12px;
+  border-radius: 4px;
+  font-family: sans-serif;
+  font-size: 0.9rem;
+}
+
 .add-album-form button {
   background-color: var(--color-accent);
   color: var(--color-bg);
@@ -239,6 +360,85 @@ p {
 
 .suggestion-list li:hover {
   background-color: var(--color-bg);
+  color: var(--color-accent);
+}
+
+/* ===== Select with custom option ===== */
+.custom-select-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.custom-select-back {
+  background: none;
+  border: none;
+  color: var(--color-text-muted);
+  font-size: 0.8rem;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.custom-select-back:hover {
+  color: var(--color-accent);
+}
+
+.tags-input-wrapper {
+  position: relative;
+  flex: 1;
+  min-width: 240px;
+}
+
+.tags-chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  padding: 6px 8px;
+}
+
+.tags-chip-row input {
+  background: none;
+  border: none;
+  color: var(--color-text);
+  font-family: sans-serif;
+  font-size: 0.9rem;
+  flex: 1;
+  min-width: 120px;
+  padding: 4px;
+}
+
+.tags-chip-row input:focus {
+  outline: none;
+}
+
+.tag-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background-color: var(--color-bg);
+  border: 1px solid var(--color-border);
+  color: var(--color-accent);
+  font-family: sans-serif;
+  font-size: 0.8rem;
+  padding: 3px 6px 3px 10px;
+  border-radius: 12px;
+}
+
+.tag-chip-remove {
+  background: none;
+  border: none;
+  color: var(--color-text-muted);
+  font-size: 0.9rem;
+  cursor: pointer;
+  line-height: 1;
+  padding: 0 2px;
+}
+
+.tag-chip-remove:hover {
   color: var(--color-accent);
 }
 
@@ -313,93 +513,4 @@ p {
 
 .modal-pressing-details strong {
   color: var(--color-text);
-}
-.logo-link {
-  text-decoration: none;
-}
-
-.landing-page {
-  min-height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.landing-content {
-  text-align: center;
-}
-
-.landing-content h1 {
-  font-size: 3rem;
-}
-
-.landing-actions {
-  display: flex;
-  gap: 12px;
-  justify-content: center;
-  margin-top: 24px;
-}
-
-.landing-button {
-  padding: 10px 24px;
-  border-radius: 4px;
-  font-family: sans-serif;
-  font-size: 0.95rem;
-  text-decoration: none;
-}
-
-.landing-button.primary {
-  background-color: var(--color-accent);
-  color: var(--color-bg);
-}
-
-.landing-button.secondary {
-  border: 1px solid var(--color-border);
-  color: var(--color-text-muted);
-}
-
-.auth-page {
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-}
-
-.auth-page a {
-  color: var(--color-accent);
-}
-.auth-form {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  width: 280px;
-}
-
-.auth-form input {
-  background-color: var(--color-surface);
-  border: 1px solid var(--color-border);
-  color: var(--color-text);
-  padding: 10px 12px;
-  border-radius: 4px;
-  font-family: sans-serif;
-  font-size: 0.9rem;
-}
-
-.auth-form button {
-  background-color: var(--color-accent);
-  color: var(--color-bg);
-  border: none;
-  padding: 10px;
-  border-radius: 4px;
-  font-family: sans-serif;
-  font-size: 0.9rem;
-  cursor: pointer;
-}
-
-.auth-error {
-  color: #d97757;
-  font-size: 0.85rem;
-  margin: 0;
 }

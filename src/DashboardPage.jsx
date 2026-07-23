@@ -3,96 +3,161 @@ import Header from './Header'
 import RecordCard from './RecordCard'
 import AddAlbumForm from './AddAlbumForm'
 import AlbumModal from './AlbumModal'
+import { supabase } from './supabaseClient'
+import { useAuth } from './AuthContext'
 
-const defaultCollection = [
-  {
-    id: 1,
-    title: "Kind of Blue",
-    artist: "Miles Davis",
-    year: 1959,
-    genre: "Jazz",
-    isInCollection: true,
-    imageUrl: "https://placehold.co/400x400/2a271f/f2efe9?text=Kind+of+Blue",
-    label: "",
-    pressingCountry: "",
-    matrixNumber: "",
-    deadwax: ""
-  },
-  {
-    id: 2,
-    title: "Abbey Road",
-    artist: "The Beatles",
-    year: 1969,
-    genre: "Rock",
-    isInCollection: true,
-    imageUrl: "https://placehold.co/400x400/2a271f/f2efe9?text=Abbey+Road",
-    label: "",
-    pressingCountry: "",
-    matrixNumber: "",
-    deadwax: ""
-  },
-  {
-    id: 3,
-    title: "Blue Train",
-    artist: "John Coltrane",
-    year: 1957,
-    genre: "Jazz",
-    isInCollection: true,
-    imageUrl: "https://placehold.co/400x400/2a271f/f2efe9?text=Blue+Train",
-    label: "",
-    pressingCountry: "",
-    matrixNumber: "",
-    deadwax: ""
-  },
-  {
-    id: 4,
-    title: "A Love Supreme",
-    artist: "John Coltrane",
-    year: 1965,
-    genre: "Jazz",
-    isInCollection: false,
-    imageUrl: "https://placehold.co/400x400/2a271f/f2efe9?text=A+Love+Supreme",
-    label: "",
-    pressingCountry: "",
-    matrixNumber: "",
-    deadwax: ""
+function rowToAlbum(row) {
+  return {
+    id: row.id,
+    title: row.title,
+    artist: row.artist,
+    year: row.year,
+    genre: row.genre,
+    subgenre: row.subgenre,
+    imageUrl: row.image_url,
+    isInCollection: row.is_in_collection,
+    label: row.label,
+    pressingCountry: row.pressing_country,
+    matrixNumber: row.matrix_number,
+    deadwax: row.deadwax,
+    sleeveCondition: row.sleeve_condition,
+    mediaCondition: row.media_condition,
+    specialTags: row.special_tags || []
   }
-]
+}
+
+function albumToRow(album) {
+  return {
+    title: album.title,
+    artist: album.artist,
+    year: album.year,
+    genre: album.genre,
+    subgenre: album.subgenre,
+    image_url: album.imageUrl,
+    is_in_collection: album.isInCollection,
+    label: album.label,
+    pressing_country: album.pressingCountry,
+    matrix_number: album.matrixNumber,
+    deadwax: album.deadwax,
+    sleeve_condition: album.sleeveCondition,
+    media_condition: album.mediaCondition,
+    special_tags: album.specialTags
+  }
+}
 
 function DashboardPage() {
-  const [collection, setCollection] = useState(() => {
-    const saved = localStorage.getItem('vinylVenueCollection')
-    return saved ? JSON.parse(saved) : defaultCollection
-  })
-
+  const { user } = useAuth()
+  const [collection, setCollection] = useState([])
   const [selectedAlbum, setSelectedAlbum] = useState(null)
   const [editingAlbum, setEditingAlbum] = useState(null)
 
   useEffect(() => {
-    localStorage.setItem('vinylVenueCollection', JSON.stringify(collection))
-  }, [collection])
+    fetchAlbums()
+  }, [])
 
-  function handleAddAlbum(newAlbum) {
-    const albumWithId = { ...newAlbum, id: crypto.randomUUID() }
-    setCollection([...collection, albumWithId])
+  async function fetchAlbums() {
+    const { data, error } = await supabase
+      .from('albums')
+      .select('*')
+      .order('created_at', { ascending: false })
+
+    if (error) {
+      console.error('Error fetching albums:', error.message)
+      return
+    }
+
+    setCollection(data.map(rowToAlbum))
   }
 
-  function handleUpdateAlbum(updatedAlbum) {
+  async function uploadImage(file) {
+    if (!file) return null
+
+    const fileExt = file.name.split('.').pop()
+    const fileName = `${user.id}/${crypto.randomUUID()}.${fileExt}`
+
+    const { error: uploadError } = await supabase.storage
+      .from('album-covers')
+      .upload(fileName, file)
+
+    if (uploadError) {
+      console.error('Error uploading image:', uploadError.message)
+      return null
+    }
+
+    const { data } = supabase.storage
+      .from('album-covers')
+      .getPublicUrl(fileName)
+
+    return data.publicUrl
+  }
+
+  async function handleAddAlbum(newAlbum) {
+    const uploadedUrl = await uploadImage(newAlbum.imageFile)
+
+    const albumForDb = {
+      ...newAlbum,
+      imageUrl: uploadedUrl || ''
+    }
+    delete albumForDb.imageFile
+    delete albumForDb.existingImageUrl
+
+    const { data, error } = await supabase
+      .from('albums')
+      .insert({ ...albumToRow(albumForDb), user_id: user.id })
+      .select()
+
+    if (error) {
+      console.error('Error adding album:', error.message)
+      return
+    }
+
+    setCollection([rowToAlbum(data[0]), ...collection])
+  }
+
+  async function handleUpdateAlbum(updatedAlbum) {
+    const uploadedUrl = await uploadImage(updatedAlbum.imageFile)
+
+    const albumForDb = {
+      ...updatedAlbum,
+      imageUrl: uploadedUrl || updatedAlbum.existingImageUrl
+    }
+    delete albumForDb.imageFile
+    delete albumForDb.existingImageUrl
+
+    const { data, error } = await supabase
+      .from('albums')
+      .update(albumToRow(albumForDb))
+      .eq('id', updatedAlbum.id)
+      .select()
+
+    if (error) {
+      console.error('Error updating album:', error.message)
+      return
+    }
+
+    const updatedRow = rowToAlbum(data[0])
     setCollection(
-      collection.map((album) =>
-        album.id === updatedAlbum.id ? updatedAlbum : album
-      )
+      collection.map((album) => (album.id === updatedRow.id ? updatedRow : album))
     )
     setEditingAlbum(null)
   }
 
-  function handleDeleteAlbum(idToDelete) {
+  async function handleDeleteAlbum(idToDelete) {
+    const { error } = await supabase
+      .from('albums')
+      .delete()
+      .eq('id', idToDelete)
+
+    if (error) {
+      console.error('Error deleting album:', error.message)
+      return
+    }
+
     setCollection(collection.filter((album) => album.id !== idToDelete))
   }
 
   const existingTitles = [...new Set(collection.map((album) => album.title))]
   const existingArtists = [...new Set(collection.map((album) => album.artist))]
-  const existingGenres = [...new Set(collection.map((album) => album.genre).filter(Boolean))]
   const existingLabels = [...new Set(collection.map((album) => album.label).filter(Boolean))]
   const existingPressingCountries = [...new Set(collection.map((album) => album.pressingCountry).filter(Boolean))]
 
@@ -108,7 +173,6 @@ function DashboardPage() {
           onCancelEdit={() => setEditingAlbum(null)}
           existingTitles={existingTitles}
           existingArtists={existingArtists}
-          existingGenres={existingGenres}
           existingLabels={existingLabels}
           existingPressingCountries={existingPressingCountries}
         />
