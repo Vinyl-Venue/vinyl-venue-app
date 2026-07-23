@@ -1,11 +1,13 @@
+import { Link } from 'react-router-dom'
+
 function Header() {
   return (
     <header>
       <div className="nav-bar">
-        <h1>Vinyl Venue</h1>
+        <Link to="/" className="logo-link"><h1>Vinyl Venue</h1></Link>
         <nav className="nav-links">
-          <a href="#">Sign in</a>
-          <a href="#">Sign up</a>
+          <Link to="/signin">Sign in</Link>
+          <Link to="/signup">Sign up</Link>
         </nav>
       </div>
       <p>Your collection. Your marketplace. Your bandmates.</p>
