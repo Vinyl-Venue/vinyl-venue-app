@@ -1,44 +1,53 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import './App.css'
 import Header from './Header'
 import RecordCard from './RecordCard'
 import AddAlbumForm from './AddAlbumForm'
 
+const defaultCollection = [
+  {
+    title: "Kind of Blue",
+    artist: "Miles Davis",
+    year: 1959,
+    genre: "Jazz",
+    isInCollection: true,
+    imageUrl: "https://placehold.co/400x400/2a271f/f2efe9?text=Kind+of+Blue"
+  },
+  {
+    title: "Abbey Road",
+    artist: "The Beatles",
+    year: 1969,
+    genre: "Rock",
+    isInCollection: true,
+    imageUrl: "https://placehold.co/400x400/2a271f/f2efe9?text=Abbey+Road"
+  },
+  {
+    title: "Blue Train",
+    artist: "John Coltrane",
+    year: 1957,
+    genre: "Jazz",
+    isInCollection: true,
+    imageUrl: "https://placehold.co/400x400/2a271f/f2efe9?text=Blue+Train"
+  },
+  {
+    title: "A Love Supreme",
+    artist: "John Coltrane",
+    year: 1965,
+    genre: "Jazz",
+    isInCollection: false,
+    imageUrl: "https://placehold.co/400x400/2a271f/f2efe9?text=A+Love+Supreme"
+  }
+]
+
 function App() {
-  const [collection, setCollection] = useState([
-    {
-      title: "Kind of Blue",
-      artist: "Miles Davis",
-      year: 1959,
-      genre: "Jazz",
-      isInCollection: true,
-      imageUrl: "https://placehold.co/400x400/2a271f/f2efe9?text=Kind+of+Blue"
-    },
-    {
-      title: "Abbey Road",
-      artist: "The Beatles",
-      year: 1969,
-      genre: "Rock",
-      isInCollection: true,
-      imageUrl: "https://placehold.co/400x400/2a271f/f2efe9?text=Abbey+Road"
-    },
-    {
-      title: "Blue Train",
-      artist: "John Coltrane",
-      year: 1957,
-      genre: "Jazz",
-      isInCollection: true,
-      imageUrl: "https://placehold.co/400x400/2a271f/f2efe9?text=Blue+Train"
-    },
-    {
-      title: "A Love Supreme",
-      artist: "John Coltrane",
-      year: 1965,
-      genre: "Jazz",
-      isInCollection: false,
-      imageUrl: "https://placehold.co/400x400/2a271f/f2efe9?text=A+Love+Supreme"
-    }
-  ])
+  const [collection, setCollection] = useState(() => {
+    const saved = localStorage.getItem('vinylVenueCollection')
+    return saved ? JSON.parse(saved) : defaultCollection
+  })
+
+  useEffect(() => {
+    localStorage.setItem('vinylVenueCollection', JSON.stringify(collection))
+  }, [collection])
 
   function handleAddAlbum(newAlbum) {
     setCollection([...collection, newAlbum])
