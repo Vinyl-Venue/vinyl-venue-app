@@ -12,28 +12,35 @@ function Header() {
   }
 
   return (
-    <header>
-      <div className="nav-bar">
-        <Link to="/" className="logo-link"><h1>Vinyl Venue</h1></Link>
-        <nav className="nav-links">
+    <header className="p-10">
+      <div className="flex justify-between items-center">
+        <Link to="/" className="no-underline">
+          <h1 className="m-0 text-4xl text-text">Vinyl Venue</h1>
+        </Link>
+        <nav className="flex gap-5 items-center font-sans">
           {user ? (
             <>
-              <Link to="/dashboard">Shelf</Link>
-              <Link to="/wishlist">Wishlist</Link>
-              <Link to="/marketplace">Marketplace</Link>
-              <Link to="/stats">Stats</Link>
-              <span className="user-email">{user.email}</span>
-              <button className="signout-button" onClick={handleSignOut}>Sign out</button>
+              <Link to="/dashboard" className="text-text-muted no-underline text-sm hover:text-accent transition-colors">Shelf</Link>
+              <Link to="/wishlist" className="text-text-muted no-underline text-sm hover:text-accent transition-colors">Wishlist</Link>
+              <Link to="/marketplace" className="text-text-muted no-underline text-sm hover:text-accent transition-colors">Marketplace</Link>
+              <Link to="/stats" className="text-text-muted no-underline text-sm hover:text-accent transition-colors">Stats</Link>
+              <span className="text-text-muted text-sm font-sans">{user.email}</span>
+              <button
+                onClick={handleSignOut}
+                className="bg-transparent border border-border text-text-muted px-3.5 py-1.5 rounded font-sans text-sm cursor-pointer hover:border-accent hover:text-accent transition-colors"
+              >
+                Sign out
+              </button>
             </>
           ) : (
             <>
-              <Link to="/signin">Sign in</Link>
-              <Link to="/signup">Sign up</Link>
+              <Link to="/signin" className="text-text-muted no-underline text-sm hover:text-accent transition-colors">Sign in</Link>
+              <Link to="/signup" className="text-text-muted no-underline text-sm hover:text-accent transition-colors">Sign up</Link>
             </>
           )}
         </nav>
       </div>
-      <p>Your collection. Your marketplace. Your bandmates.</p>
+      <p className="mt-2 text-lg text-text-muted">Your collection. Your marketplace. Your bandmates.</p>
     </header>
   )
 }

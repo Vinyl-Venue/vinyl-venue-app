@@ -30,12 +30,12 @@ function AuctionCountdown({ endsAt }) {
     return () => clearInterval(intervalId)
   }, [endsAt])
 
-  if (timeLeft.total <= 0) {
-    return <span className="auction-ended">Auction ended</span>
+ if (timeLeft.total <= 0) {
+    return <span className="block text-text-muted font-sans text-xs mt-1">Auction ended</span>
   }
 
   return (
-    <span className="auction-countdown">
+    <span className="block text-accent font-mono text-sm mt-1">
       {timeLeft.days}d {pad(timeLeft.hours)}:{pad(timeLeft.minutes)}:{pad(timeLeft.seconds)}
     </span>
   )

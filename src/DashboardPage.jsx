@@ -179,8 +179,8 @@ function DashboardPage() {
   return (
     <>
       <Header />
-      <section className="shelf">
-        <h2>Recently added to the shelf</h2>
+      <section className="px-10 pb-10">
+        <h2 className="text-2xl font-serif mb-2">Recently added to the shelf</h2>
         <AddAlbumForm
           onAddAlbum={handleAddAlbum}
           onUpdateAlbum={handleUpdateAlbum}
@@ -192,11 +192,14 @@ function DashboardPage() {
           existingPressingCountries={existingPressingCountries}
         />
 
-        <button className="import-button" onClick={() => setShowImportModal(true)}>
+        <button
+          onClick={() => setShowImportModal(true)}
+          className="bg-transparent border border-border text-text-muted px-4 py-2 rounded font-sans text-sm cursor-pointer mb-4 hover:border-accent hover:text-accent"
+        >
           Import from CSV
         </button>
 
-        <div className="record-grid">
+        <div className="grid grid-cols-4 gap-3 mt-4">
           {collection.map((album) => (
             <RecordCard
               key={album.id}

@@ -18,17 +18,24 @@ function SelectWithCustom({ value, onChange, options, placeholder }) {
     onChange('')
   }
 
+  const inputClass = "bg-surface border border-border text-text px-3 py-2 rounded font-sans text-sm"
+
   if (isCustom) {
     return (
-      <div className="custom-select-wrapper">
+      <div className="flex items-center gap-1.5">
         <input
           type="text"
           placeholder={`New ${placeholder.toLowerCase()}`}
           value={value}
           onChange={(event) => onChange(event.target.value)}
           autoFocus
+          className={inputClass}
         />
-        <button type="button" className="custom-select-back" onClick={handleBackToList}>
+        <button
+          type="button"
+          onClick={handleBackToList}
+          className="bg-transparent border-0 text-text-muted text-xs cursor-pointer whitespace-nowrap hover:text-accent"
+        >
           ← choose from list
         </button>
       </div>
@@ -36,7 +43,11 @@ function SelectWithCustom({ value, onChange, options, placeholder }) {
   }
 
   return (
-    <select value={options.includes(value) ? value : ''} onChange={handleSelectChange}>
+    <select
+      value={options.includes(value) ? value : ''}
+      onChange={handleSelectChange}
+      className={inputClass}
+    >
       <option value="">{placeholder}</option>
       {options.map((option) => (
         <option key={option} value={option}>{option}</option>

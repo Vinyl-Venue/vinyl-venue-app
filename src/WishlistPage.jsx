@@ -48,7 +48,6 @@ function WishlistPage() {
   const [items, setItems] = useState([])
   const [rank, setRank] = useState('')
   const [selectedItem, setSelectedItem] = useState(null)
-  const [uploadImage, setUploadImage] = useState(null)
 
   useEffect(() => {
     fetchWishlist()
@@ -152,15 +151,19 @@ function WishlistPage() {
   return (
     <>
       <Header />
-      <section className="shelf">
-        <h2>Your wishlist</h2>
-        <p className="wishlist-subtitle">
+      <section className="px-10 pb-10">
+        <h2 className="text-2xl font-serif mb-2">Your wishlist</h2>
+        <p className="text-text-muted font-sans text-sm">
           Rank the albums you want most — 1 is your most coveted, 10 your least.
         </p>
 
-        <div className="wishlist-rank-picker">
+        <div className="flex items-center gap-2.5 mb-3 font-sans text-text-muted text-sm">
           <label>New item's rank:</label>
-          <select value={rank} onChange={(event) => setRank(event.target.value)}>
+          <select
+            value={rank}
+            onChange={(event) => setRank(event.target.value)}
+            className="bg-surface border border-border text-text px-2.5 py-1.5 rounded font-sans"
+          >
             <option value="">Choose a rank</option>
             {availableRanks.map((r) => (
               <option key={r} value={r}>#{r}</option>
@@ -179,23 +182,26 @@ function WishlistPage() {
           existingPressingCountries={[]}
         />
 
-        <ol className="wishlist-list">
+        <ol className="list-none p-0 mt-6 flex flex-col gap-2 max-w-2xl">
           {items.map((item) => (
-            <li key={item.id} className="wishlist-row">
-              <span className="wishlist-rank">#{item.rank}</span>
+            <li
+              key={item.id}
+              className="flex items-center gap-4 bg-surface border border-border rounded px-4 py-2.5"
+            >
+              <span className="text-accent font-bold font-sans min-w-[30px]">#{item.rank}</span>
               <img
                 src={item.imageUrl || "https://placehold.co/60x60/1c1a15/a8a29a?text=%20"}
                 alt={item.title}
-                className="wishlist-thumb"
+                className="w-12 h-12 object-cover rounded cursor-pointer"
                 onClick={() => setSelectedItem(item)}
               />
-              <span className="wishlist-info" onClick={() => setSelectedItem(item)}>
+              <span className="flex-1 font-sans text-[0.95rem] cursor-pointer" onClick={() => setSelectedItem(item)}>
                 <strong>{item.title}</strong> — {item.artist}
                 {item.year ? ` (${item.year})` : ''}
               </span>
               <button
-                className="wishlist-remove"
                 onClick={() => handleRemove(item)}
+                className="bg-transparent border border-border text-text-muted px-2.5 py-1 rounded font-sans text-xs cursor-pointer hover:border-accent hover:text-accent"
               >
                 Remove
               </button>
@@ -204,7 +210,7 @@ function WishlistPage() {
         </ol>
 
         {items.length === 0 && (
-          <p className="wishlist-empty">Your wishlist is empty — add your first album above.</p>
+          <p className="text-text-muted font-sans text-sm">Your wishlist is empty — add your first album above.</p>
         )}
       </section>
 

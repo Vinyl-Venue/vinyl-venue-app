@@ -38,6 +38,9 @@ const SUBGENRE_MAP = {
   'Soundtrack': ['Film Score', 'Video Game Music', 'Musical Theatre']
 }
 
+const inputClass = "bg-surface border border-border text-text px-3 py-2 rounded font-sans text-sm"
+const selectClass = "bg-surface border border-border text-text px-3 py-2 rounded font-sans text-sm"
+
 function AddAlbumForm({
   onAddAlbum,
   onUpdateAlbum,
@@ -159,8 +162,8 @@ function AddAlbumForm({
   const subgenreOptions = SUBGENRE_MAP[genre] || []
 
   return (
-    <form className="add-album-form" onSubmit={handleSubmit}>
-      <div className="form-row">
+    <form className="mb-6" onSubmit={handleSubmit}>
+      <div className="flex gap-2.5 items-center mb-2.5 flex-wrap">
         <AutocompleteInput
           placeholder="Album title"
           value={title}
@@ -178,9 +181,10 @@ function AddAlbumForm({
           placeholder="Year"
           value={year}
           onChange={(event) => setYear(event.target.value)}
+          className={inputClass}
         />
       </div>
-      <div className="form-row">
+      <div className="flex gap-2.5 items-center mb-2.5 flex-wrap">
         <SelectWithCustom
           placeholder="Genre"
           value={genre}
@@ -194,7 +198,7 @@ function AddAlbumForm({
           options={subgenreOptions}
         />
       </div>
-      <div className="form-row">
+      <div className="flex gap-2.5 items-center mb-2.5 flex-wrap">
         <AutocompleteInput
           placeholder="Label"
           value={label}
@@ -212,18 +216,21 @@ function AddAlbumForm({
           placeholder="Matrix number"
           value={matrixNumber}
           onChange={(event) => setMatrixNumber(event.target.value)}
+          className={inputClass}
         />
         <input
           type="text"
           placeholder="Deadwax / runout"
           value={deadwax}
           onChange={(event) => setDeadwax(event.target.value)}
+          className={inputClass}
         />
       </div>
-      <div className="form-row">
+      <div className="flex gap-2.5 items-center mb-2.5 flex-wrap">
         <select
           value={sleeveCondition}
           onChange={(event) => setSleeveCondition(event.target.value)}
+          className={selectClass}
         >
           {CONDITION_OPTIONS.map((option) => (
             <option key={option.value} value={option.value}>
@@ -234,6 +241,7 @@ function AddAlbumForm({
         <select
           value={mediaCondition}
           onChange={(event) => setMediaCondition(event.target.value)}
+          className={selectClass}
         >
           {CONDITION_OPTIONS.map((option) => (
             <option key={option.value} value={option.value}>
@@ -242,24 +250,31 @@ function AddAlbumForm({
           ))}
         </select>
       </div>
-      <div className="form-row">
+      <div className="flex gap-2.5 items-center mb-2.5 flex-wrap">
         <SpecialTagsInput selectedTags={specialTags} onChange={setSpecialTags} />
       </div>
-      <div className="form-row">
+      <div className="flex gap-2.5 items-center mb-2.5 flex-wrap">
         <input
           type="file"
           accept="image/*"
           onChange={handleFileChange}
-          className="file-input"
+          className="text-text-muted font-sans text-sm"
         />
         {imagePreviewUrl && (
-          <img src={imagePreviewUrl} alt="Preview" className="image-preview" />
+          <img src={imagePreviewUrl} alt="Preview" className="w-10 h-10 object-cover rounded" />
         )}
-        <button type="submit">
+        <button
+          type="submit"
+          className="bg-accent text-bg border-0 px-4 py-2 rounded font-sans text-sm cursor-pointer"
+        >
           {editingAlbum ? 'Save changes' : 'Add to shelf'}
         </button>
         {editingAlbum && (
-          <button type="button" onClick={handleCancel} className="cancel-button">
+          <button
+            type="button"
+            onClick={handleCancel}
+            className="bg-transparent border border-border text-text-muted px-4 py-2 rounded font-sans text-sm cursor-pointer"
+          >
             Cancel
           </button>
         )}

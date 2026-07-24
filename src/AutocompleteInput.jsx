@@ -14,7 +14,7 @@ function AutocompleteInput({ type = 'text', placeholder, value, onChange, sugges
   }
 
   return (
-    <div className="autocomplete-wrapper">
+    <div className="relative">
       <input
         type={type}
         placeholder={placeholder}
@@ -25,11 +25,16 @@ function AutocompleteInput({ type = 'text', placeholder, value, onChange, sugges
         }}
         onFocus={() => setShowSuggestions(true)}
         onBlur={() => setTimeout(() => setShowSuggestions(false), 150)}
+        className="bg-surface border border-border text-text px-3 py-2 rounded font-sans text-sm"
       />
       {showSuggestions && value.trim() !== '' && matches.length > 0 && (
-        <ul className="suggestion-list">
+        <ul className="absolute top-full left-0 right-0 bg-surface border border-border rounded mt-1 py-1 list-none z-10 max-h-40 overflow-y-auto">
           {matches.map((item) => (
-            <li key={item} onClick={() => handleSelect(item)}>
+            <li
+              key={item}
+              onClick={() => handleSelect(item)}
+              className="px-3 py-2 font-sans text-sm cursor-pointer hover:bg-bg hover:text-accent"
+            >
               {item}
             </li>
           ))}

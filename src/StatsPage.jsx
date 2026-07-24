@@ -40,7 +40,7 @@ function StatsPage() {
     return (
       <>
         <Header />
-        <section className="shelf">
+        <section className="px-10 pb-10">
           <p>Loading your stats...</p>
         </section>
       </>
@@ -51,9 +51,9 @@ function StatsPage() {
     return (
       <>
         <Header />
-        <section className="shelf">
-          <h2>Your stats</h2>
-          <p className="wishlist-empty">Add some albums to your shelf to see your stats here.</p>
+        <section className="px-10 pb-10">
+          <h2 className="text-2xl font-serif mb-2">Your stats</h2>
+          <p className="text-text-muted font-sans text-sm">Add some albums to your shelf to see your stats here.</p>
         </section>
       </>
     )
@@ -75,24 +75,24 @@ function StatsPage() {
   return (
     <>
       <Header />
-      <section className="shelf">
-        <h2>Your stats</h2>
+      <section className="px-10 pb-10">
+        <h2 className="text-2xl font-serif mb-2">Your stats</h2>
 
-        <div className="stats-summary">
-          <div className="stats-card">
-            <span className="stats-number">{albums.length}</span>
-            <span className="stats-label">Total albums</span>
+        <div className="flex gap-4 my-5 flex-wrap">
+          <div className="bg-surface border border-border rounded-md px-5 py-4 flex flex-col min-w-[160px]">
+            <span className="font-serif text-3xl text-accent">{albums.length}</span>
+            <span className="font-sans text-xs text-text-muted mt-1">Total albums</span>
           </div>
           {topArtist && (
-            <div className="stats-card">
-              <span className="stats-number">{topArtist[1]}</span>
-              <span className="stats-label">Albums by {topArtist[0]} (most collected)</span>
+            <div className="bg-surface border border-border rounded-md px-5 py-4 flex flex-col min-w-[160px]">
+              <span className="font-serif text-3xl text-accent">{topArtist[1]}</span>
+              <span className="font-sans text-xs text-text-muted mt-1">Albums by {topArtist[0]} (most collected)</span>
             </div>
           )}
           {topDecade && (
-            <div className="stats-card">
-              <span className="stats-number">{topDecade[1]}</span>
-              <span className="stats-label">Albums from the {topDecade[0]} (top decade)</span>
+            <div className="bg-surface border border-border rounded-md px-5 py-4 flex flex-col min-w-[160px]">
+              <span className="font-serif text-3xl text-accent">{topDecade[1]}</span>
+              <span className="font-sans text-xs text-text-muted mt-1">Albums from the {topDecade[0]} (top decade)</span>
             </div>
           )}
         </div>
@@ -107,17 +107,17 @@ function StatsPage() {
 
 function StatsBreakdown({ title, data, total }) {
   return (
-    <div className="stats-breakdown">
-      <h3>{title}</h3>
+    <div className="mb-7 max-w-[500px]">
+      <h3 className="font-serif text-lg mb-3">{title}</h3>
       {data.map(([label, count]) => {
         const percent = Math.round((count / total) * 100)
         return (
-          <div key={label} className="stats-bar-row">
-            <span className="stats-bar-label">{label}</span>
-            <div className="stats-bar-track">
-              <div className="stats-bar-fill" style={{ width: `${percent}%` }}></div>
+          <div key={label} className="flex items-center gap-2.5 mb-2 font-sans text-sm">
+            <span className="w-[130px] text-text-muted shrink-0 overflow-hidden text-ellipsis whitespace-nowrap">{label}</span>
+            <div className="flex-1 h-2 bg-surface border border-border rounded overflow-hidden">
+              <div className="h-full bg-accent" style={{ width: `${percent}%` }}></div>
             </div>
-            <span className="stats-bar-count">{count} ({percent}%)</span>
+            <span className="text-text-muted w-[70px] shrink-0 text-right">{count} ({percent}%)</span>
           </div>
         )
       })}

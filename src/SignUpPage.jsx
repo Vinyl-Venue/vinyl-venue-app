@@ -29,16 +29,19 @@ function SignUpPage() {
     navigate('/dashboard')
   }
 
+  const inputClass = "bg-surface border border-border text-text px-3 py-2.5 rounded font-sans text-sm"
+
   return (
-    <div className="auth-page">
-      <h2>Sign up</h2>
-      <form className="auth-form" onSubmit={handleSubmit}>
+    <div className="min-h-screen flex flex-col items-center justify-center gap-3">
+      <h2 className="text-2xl m-0">Sign up</h2>
+      <form className="flex flex-col gap-2.5 w-72" onSubmit={handleSubmit}>
         <input
           type="email"
           placeholder="Email"
           value={email}
           onChange={(event) => setEmail(event.target.value)}
           required
+          className={inputClass}
         />
         <input
           type="password"
@@ -46,13 +49,18 @@ function SignUpPage() {
           value={password}
           onChange={(event) => setPassword(event.target.value)}
           required
+          className={inputClass}
         />
-        {errorMessage && <p className="auth-error">{errorMessage}</p>}
-        <button type="submit" disabled={isSubmitting}>
+        {errorMessage && <p className="text-[#d97757] text-sm m-0">{errorMessage}</p>}
+        <button
+          type="submit"
+          disabled={isSubmitting}
+          className="bg-accent text-bg border-0 px-2.5 py-2.5 rounded font-sans text-sm cursor-pointer"
+        >
           {isSubmitting ? 'Creating account...' : 'Sign up'}
         </button>
       </form>
-      <Link to="/">Back to home</Link>
+      <Link to="/" className="text-accent">Back to home</Link>
     </div>
   )
 }

@@ -1,6 +1,20 @@
+@import "tailwindcss";
+
+@theme {
+  --color-bg: #1c1a15;
+  --color-surface: #2a271f;
+  --color-border: #3a362c;
+  --color-text: #f2efe9;
+  --color-text-muted: #a8a29a;
+  --color-accent: #b08d57;
+
+  --font-body: Georgia, serif;
+  --font-sans: system-ui, -apple-system, sans-serif;
+}
+
 body {
   margin: 0;
-  background-color: #1c1a15;
-  color: #f2efe9;
-  font-family: Georgia, serif;
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-body);
 }

@@ -11,6 +11,13 @@ const LISTING_TYPE_LABELS = {
   auction: 'Auction'
 }
 
+const BADGE_COLORS = {
+  fixed: 'bg-accent',
+  trade: 'bg-[#7c9885]',
+  fixed_or_trade: 'bg-[#b08d57]',
+  auction: 'bg-[#c1666b]'
+}
+
 function rowToListing(row) {
   return {
     id: row.id,
@@ -62,41 +69,41 @@ function MarketplacePage() {
   return (
     <>
       <Header />
-      <section className="shelf">
-        <h2>Marketplace</h2>
+      <section className="px-10 pb-10">
+        <h2 className="text-2xl font-serif mb-2">Marketplace</h2>
 
         {loading && <p>Loading listings...</p>}
 
         {!loading && listings.length === 0 && (
-          <p className="wishlist-empty">No active listings yet.</p>
+          <p className="text-text-muted font-sans text-sm">No active listings yet.</p>
         )}
 
-        <div className="record-grid">
+        <div className="grid grid-cols-4 gap-3 mt-4">
           {listings.map((listing) => (
             <div
               key={listing.id}
-              className="listing-card"
+              className="bg-surface border border-border rounded overflow-hidden cursor-pointer hover:border-accent transition-colors"
               onClick={() => setSelectedListing(listing)}
             >
-              <div className="listing-cover-wrapper">
+              <div className="relative">
                 <img
                   src={listing.imageUrl || "https://placehold.co/400x400/1c1a15/a8a29a?text=No+cover+yet"}
                   alt={listing.title}
-                  className="record-cover"
+                  className="w-full aspect-square object-cover"
                 />
-                <span className={`listing-type-badge listing-type-${listing.listingType}`}>
+                <span className={`absolute top-2 right-2 font-sans text-[0.7rem] font-bold px-2 py-1 rounded text-bg uppercase tracking-wide ${BADGE_COLORS[listing.listingType]}`}>
                   {listing.listingTypeLabel}
                 </span>
               </div>
-              <p className="record-title">{listing.title}</p>
-              <div className="listing-details">
-                <p className="listing-artist">{listing.artist}</p>
-                <p className="listing-price">${Number(listing.price).toFixed(2)}</p>
+              <p className="m-0 text-sm px-2.5 pt-2.5 text-text">{listing.title}</p>
+              <div className="p-2.5 font-sans">
+                <p className="text-text-muted text-sm m-0 mb-1">{listing.artist}</p>
+                <p className="text-accent font-bold text-base m-0 mb-1">${Number(listing.price).toFixed(2)}</p>
                 {listing.listingType === 'auction' && listing.endsAt && (
                   <AuctionCountdown endsAt={listing.endsAt} />
                 )}
                 {listing.tradePreference && (
-                  <p className="listing-trade">Wants: {listing.tradePreference}</p>
+                  <p className="text-text-muted text-xs mt-1 mb-0">Wants: {listing.tradePreference}</p>
                 )}
               </div>
             </div>
