@@ -20,6 +20,7 @@ function Header() {
             <>
               <Link to="/dashboard">Shelf</Link>
               <Link to="/wishlist">Wishlist</Link>
+              <Link to="/stats">Stats</Link>
               <span className="user-email">{user.email}</span>
               <button className="signout-button" onClick={handleSignOut}>Sign out</button>
             </>
