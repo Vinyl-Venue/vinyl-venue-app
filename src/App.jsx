@@ -8,6 +8,7 @@ import SignUpPage from './SignUpPage'
 import DashboardPage from './DashboardPage'
 import WishlistPage from './WishlistPage'
 import StatsPage from './StatsPage'
+import MarketplacePage from './MarketplacePage'
 
 function App() {
   return (
@@ -38,6 +39,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <StatsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/marketplace"
+            element={
+              <ProtectedRoute>
+                <MarketplacePage />
               </ProtectedRoute>
             }
           />
