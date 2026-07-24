@@ -3,6 +3,7 @@ import Header from './Header'
 import RecordCard from './RecordCard'
 import AddAlbumForm from './AddAlbumForm'
 import AlbumModal from './AlbumModal'
+import ImportCsvModal from './ImportCsvModal'
 import { supabase } from './supabaseClient'
 import { useAuth } from './AuthContext'
 
@@ -50,6 +51,7 @@ function DashboardPage() {
   const [collection, setCollection] = useState([])
   const [selectedAlbum, setSelectedAlbum] = useState(null)
   const [editingAlbum, setEditingAlbum] = useState(null)
+  const [showImportModal, setShowImportModal] = useState(false)
 
   useEffect(() => {
     fetchAlbums()
@@ -84,10 +86,7 @@ function DashboardPage() {
       return null
     }
 
-    const { data } = supabase.storage
-      .from('album-covers')
-      .getPublicUrl(fileName)
-
+    const { data } = supabase.storage.from('album-covers').getPublicUrl(fileName)
     return data.publicUrl
   }
 
@@ -156,6 +155,22 @@ function DashboardPage() {
     setCollection(collection.filter((album) => album.id !== idToDelete))
   }
 
+  async function handleImportAlbums(albumsToImport) {
+    const rowsToInsert = albumsToImport.map((album) => ({
+      ...albumToRow({ ...album, isInCollection: true, imageUrl: '' }),
+      user_id: user.id
+    }))
+
+    const { error } = await supabase.from('albums').insert(rowsToInsert)
+
+    if (error) {
+      console.error('Error importing albums:', error.message)
+      return
+    }
+
+    fetchAlbums()
+  }
+
   const existingTitles = [...new Set(collection.map((album) => album.title))]
   const existingArtists = [...new Set(collection.map((album) => album.artist))]
   const existingLabels = [...new Set(collection.map((album) => album.label).filter(Boolean))]
@@ -176,6 +191,11 @@ function DashboardPage() {
           existingLabels={existingLabels}
           existingPressingCountries={existingPressingCountries}
         />
+
+        <button className="import-button" onClick={() => setShowImportModal(true)}>
+          Import from CSV
+        </button>
+
         <div className="record-grid">
           {collection.map((album) => (
             <RecordCard
@@ -201,6 +221,13 @@ function DashboardPage() {
         <AlbumModal
           album={selectedAlbum}
           onClose={() => setSelectedAlbum(null)}
+        />
+      )}
+
+      {showImportModal && (
+        <ImportCsvModal
+          onImport={handleImportAlbums}
+          onClose={() => setShowImportModal(false)}
         />
       )}
     </>
