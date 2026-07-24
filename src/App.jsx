@@ -6,6 +6,7 @@ import LandingPage from './LandingPage'
 import SignInPage from './SignInPage'
 import SignUpPage from './SignUpPage'
 import DashboardPage from './DashboardPage'
+import WishlistPage from './WishlistPage'
 
 function App() {
   return (
@@ -20,6 +21,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <DashboardPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/wishlist"
+            element={
+              <ProtectedRoute>
+                <WishlistPage />
               </ProtectedRoute>
             }
           />

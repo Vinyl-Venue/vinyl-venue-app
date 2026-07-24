@@ -18,6 +18,8 @@ function Header() {
         <nav className="nav-links">
           {user ? (
             <>
+              <Link to="/dashboard">Shelf</Link>
+              <Link to="/wishlist">Wishlist</Link>
               <span className="user-email">{user.email}</span>
               <button className="signout-button" onClick={handleSignOut}>Sign out</button>
             </>
