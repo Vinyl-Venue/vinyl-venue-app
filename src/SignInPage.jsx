@@ -1,13 +1,22 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { supabase } from './supabaseClient'
 
 function SignInPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [rememberMe, setRememberMe] = useState(false)
   const [errorMessage, setErrorMessage] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const navigate = useNavigate()
+
+  useEffect(() => {
+    const savedEmail = localStorage.getItem('vinylVenueRememberedEmail')
+    if (savedEmail) {
+      setEmail(savedEmail)
+      setRememberMe(true)
+    }
+  }, [])
 
   async function handleSubmit(event) {
     event.preventDefault()
@@ -24,6 +33,12 @@ function SignInPage() {
     if (error) {
       setErrorMessage(error.message)
       return
+    }
+
+    if (rememberMe) {
+      localStorage.setItem('vinylVenueRememberedEmail', email)
+    } else {
+      localStorage.removeItem('vinylVenueRememberedEmail')
     }
 
     navigate('/dashboard')
@@ -51,6 +66,14 @@ function SignInPage() {
           required
           className={inputClass}
         />
+        <label className="flex items-center gap-2 font-sans text-sm text-text-muted cursor-pointer">
+          <input
+            type="checkbox"
+            checked={rememberMe}
+            onChange={(event) => setRememberMe(event.target.checked)}
+          />
+          Remember my email
+        </label>
         {errorMessage && <p className="text-[#d97757] text-sm m-0">{errorMessage}</p>}
         <button
           type="submit"
@@ -60,6 +83,7 @@ function SignInPage() {
           {isSubmitting ? 'Signing in...' : 'Sign in'}
         </button>
       </form>
+      <Link to="/forgot-password" className="text-accent text-sm">Forgot your password?</Link>
       <Link to="/" className="text-accent">Back to home</Link>
     </div>
   )

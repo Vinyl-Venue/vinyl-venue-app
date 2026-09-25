@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react'
 import AutocompleteInput from './AutocompleteInput'
 import SelectWithCustom from './SelectWithCustom'
 import SpecialTagsInput from './SpecialTagsInput'
+import { supabase } from './supabaseClient'
+import { discogsSearch, discogsFetchRelease } from './utils'
 
 const CONDITION_OPTIONS = [
   { value: '', label: 'Select condition' },
@@ -58,6 +60,9 @@ function AddAlbumForm({
   const [subgenre, setSubgenre] = useState('')
   const [imageFile, setImageFile] = useState(null)
   const [imagePreviewUrl, setImagePreviewUrl] = useState('')
+  const [discogsImageUrl, setDiscogsImageUrl] = useState('')
+  const [tracklist, setTracklist] = useState(null)
+  const [credits, setCredits] = useState(null)
   const [label, setLabel] = useState('')
   const [pressingCountry, setPressingCountry] = useState('')
   const [matrixNumber, setMatrixNumber] = useState('')
@@ -65,6 +70,12 @@ function AddAlbumForm({
   const [sleeveCondition, setSleeveCondition] = useState('')
   const [mediaCondition, setMediaCondition] = useState('')
   const [specialTags, setSpecialTags] = useState([])
+
+  const [discogsResults, setDiscogsResults] = useState([])
+  const [discogsSearching, setDiscogsSearching] = useState(false)
+  const [discogsLoadingId, setDiscogsLoadingId] = useState(null)
+  const [discogsError, setDiscogsError] = useState('')
+  const [discogsFormat, setDiscogsFormat] = useState('Vinyl')
 
   useEffect(() => {
     if (editingAlbum) {
@@ -75,6 +86,9 @@ function AddAlbumForm({
       setSubgenre(editingAlbum.subgenre || '')
       setImageFile(null)
       setImagePreviewUrl(editingAlbum.imageUrl || '')
+      setDiscogsImageUrl('')
+      setTracklist(editingAlbum.tracklist || null)
+      setCredits(editingAlbum.credits || null)
       setLabel(editingAlbum.label || '')
       setPressingCountry(editingAlbum.pressingCountry || '')
       setMatrixNumber(editingAlbum.matrixNumber || '')
@@ -93,6 +107,9 @@ function AddAlbumForm({
     setSubgenre('')
     setImageFile(null)
     setImagePreviewUrl('')
+    setDiscogsImageUrl('')
+    setTracklist(null)
+    setCredits(null)
     setLabel('')
     setPressingCountry('')
     setMatrixNumber('')
@@ -100,6 +117,8 @@ function AddAlbumForm({
     setSleeveCondition('')
     setMediaCondition('')
     setSpecialTags([])
+    setDiscogsResults([])
+    setDiscogsError('')
   }
 
   function handleGenreChange(newGenre) {
@@ -112,12 +131,75 @@ function AddAlbumForm({
 
     if (!file) {
       setImageFile(null)
-      setImagePreviewUrl('')
+      setImagePreviewUrl(discogsImageUrl || '')
       return
     }
 
     setImageFile(file)
     setImagePreviewUrl(URL.createObjectURL(file))
+  }
+
+  async function handleDiscogsSearch() {
+    if (title.trim() === '' && artist.trim() === '') {
+      setDiscogsError('Enter a title or artist first.')
+      return
+    }
+
+    setDiscogsSearching(true)
+    setDiscogsError('')
+    setDiscogsResults([])
+
+    const { results, error } = await discogsSearch(title, artist, { label, year, format: discogsFormat })
+
+    setDiscogsSearching(false)
+
+    if (error) {
+      console.error('Discogs search error:', error)
+      setDiscogsError(error)
+      return
+    }
+
+    setDiscogsResults(results)
+    if (results.length === 0) {
+      setDiscogsError('No matches found on Discogs.')
+    }
+  }
+
+  async function handleSelectRelease(result) {
+    setDiscogsLoadingId(result.id)
+    setDiscogsError('')
+
+    const { release, error } = await discogsFetchRelease(result.id)
+
+    setDiscogsLoadingId(null)
+
+    if (error) {
+      console.error('Error fetching release:', error)
+      setDiscogsError('Could not load that release — try another result.')
+      return
+    }
+
+    setTitle(release.title || title)
+    setArtist(release.artist || artist)
+    setYear(release.year ? String(release.year) : year)
+    if (release.genre) setGenre(release.genre)
+    setLabel(release.label || label)
+    setPressingCountry(release.pressingCountry || pressingCountry)
+    if (release.matrixNumber) setMatrixNumber(release.matrixNumber)
+
+    if (release.coverImageUrl && !imageFile) {
+      setImagePreviewUrl(release.coverImageUrl)
+      setDiscogsImageUrl(release.coverImageUrl)
+    }
+
+    if (release.tracklist && release.tracklist.length > 0) {
+      setTracklist(release.tracklist)
+    }
+    if (release.credits && release.credits.length > 0) {
+      setCredits(release.credits)
+    }
+
+    setDiscogsResults([])
   }
 
   async function handleSubmit(event) {
@@ -136,6 +218,9 @@ function AddAlbumForm({
       isInCollection: true,
       imageFile: imageFile,
       existingImageUrl: editingAlbum ? editingAlbum.imageUrl : '',
+      discogsImageUrl: discogsImageUrl,
+      tracklist: tracklist,
+      credits: credits,
       label: label,
       pressingCountry: pressingCountry,
       matrixNumber: matrixNumber,
@@ -183,7 +268,68 @@ function AddAlbumForm({
           onChange={(event) => setYear(event.target.value)}
           className={inputClass}
         />
+        <select
+          value={discogsFormat}
+          onChange={(event) => setDiscogsFormat(event.target.value)}
+          className={selectClass}
+          title="Filters Discogs results to this format"
+        >
+          <option value="Vinyl">Vinyl</option>
+          <option value="">All formats</option>
+          <option value="CD">CD</option>
+          <option value="Cassette">Cassette</option>
+        </select>
+        <button
+          type="button"
+          onClick={handleDiscogsSearch}
+          disabled={discogsSearching}
+          className="bg-transparent border border-border text-text-muted px-3 py-2 rounded font-sans text-sm cursor-pointer hover:border-accent hover:text-accent disabled:opacity-60"
+        >
+          {discogsSearching ? 'Searching...' : 'Find on Discogs'}
+        </button>
       </div>
+
+      {discogsError && (
+        <p className="font-sans text-xs text-text-muted mb-2">{discogsError}</p>
+      )}
+
+      {(tracklist || credits) && (
+        <p className="font-sans text-xs text-accent mb-2">
+          ✓ {tracklist ? `${tracklist.length} track${tracklist.length === 1 ? '' : 's'}` : ''}
+          {tracklist && credits ? ' · ' : ''}
+          {credits ? `${credits.length} credit${credits.length === 1 ? '' : 's'}` : ''} captured from Discogs
+        </p>
+      )}
+
+      {discogsResults.length > 0 && (
+        <div className="flex flex-col gap-1.5 mb-3 max-w-xl max-h-80 overflow-y-auto">
+          {discogsResults.map((result) => (
+            <button
+              key={result.id}
+              type="button"
+              onClick={() => handleSelectRelease(result)}
+              disabled={discogsLoadingId === result.id}
+              className="flex items-center gap-3 bg-surface border border-border rounded px-3 py-2 text-left cursor-pointer hover:border-accent disabled:opacity-60"
+            >
+              <img
+                src={result.thumb || "https://placehold.co/40x40/1c1a15/a8a29a?text=%20"}
+                alt=""
+                className="w-10 h-10 object-cover rounded flex-shrink-0"
+              />
+              <span className="font-sans text-sm text-text flex-1">
+                {result.title}
+                <span className="text-text-muted text-xs block">
+                  {[result.year, result.format, result.country].filter(Boolean).join(' · ')}
+                </span>
+              </span>
+              {discogsLoadingId === result.id && (
+                <span className="text-text-muted text-xs">Loading...</span>
+              )}
+            </button>
+          ))}
+        </div>
+      )}
+
       <div className="flex gap-2.5 items-center mb-2.5 flex-wrap">
         <SelectWithCustom
           placeholder="Genre"
