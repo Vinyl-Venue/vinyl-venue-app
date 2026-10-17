@@ -52,10 +52,11 @@ function SignUpPage() {
         />
         <input
           type="password"
-          placeholder="Password"
+          placeholder="Password (at least 8 characters)"
           value={password}
           onChange={(event) => setPassword(event.target.value)}
           required
+          minLength={8}
           className={inputClass}
         />
         <label className="flex items-start gap-2 font-sans text-xs text-text-muted cursor-pointer">

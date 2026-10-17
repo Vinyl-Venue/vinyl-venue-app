@@ -36,11 +36,11 @@ function ResetPasswordPage() {
       <form className="flex flex-col gap-2.5 w-72" onSubmit={handleSubmit}>
         <input
           type="password"
-          placeholder="New password"
+          placeholder="New password (at least 8 characters)"
           value={password}
           onChange={(event) => setPassword(event.target.value)}
           required
-          minLength={6}
+          minLength={8}
           className={inputClass}
         />
         {message && <p className="text-accent text-sm m-0">{message}</p>}
