@@ -12,7 +12,7 @@ const PLACEHOLDER_AVATAR = "https://placehold.co/24x24/E4E2DC/E4E2DC"
 // condition means the same thing wherever it's set in the app.
 const CONDITION_OPTIONS = ['', 'M', 'NM', 'VG+', 'VG', 'G+', 'G', 'P']
 
-function AlbumDetailContent({ album, onClose, isOwnAlbum = false }) {
+function AlbumDetailContent({ album, isOwnAlbum = false }) {
   const { user } = useAuth()
   const [existingListing, setExistingListing] = useState(null)
   const [checkingListing, setCheckingListing] = useState(true)

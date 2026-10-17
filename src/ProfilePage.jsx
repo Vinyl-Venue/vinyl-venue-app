@@ -1,3 +1,4 @@
+import ReportButton from './ReportButton'
 import { useState, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import Header from './Header'
@@ -19,15 +20,16 @@ import BadgesSection from './BadgesSection'
 import AlbumDetailContent from './AlbumDetailContent'
 import SidePanel from './SidePanel'
 import ScanCrateModal from './ScanCrateModal'
+import WelcomeChecklist from './WelcomeChecklist'
+import ActivityStrip from './ActivityStrip'
 import { supabase } from './supabaseClient'
 import { useAuth } from './AuthContext'
 import {
   attachRarity, displayNameFor, avatarPlaceholder,
-  jaccardSimilarity, uniqueValues, getDecade, fuzzyMatchKey, matchKey, timeAgo, getCollectionTier
+  jaccardSimilarity, uniqueValues, getDecade, fuzzyMatchKey, matchKey, getCollectionTier
 } from './utils'
 
 const PLACEHOLDER_60 = "https://placehold.co/60x60/E4E2DC/767467?text=%20"
-const PLACEHOLDER_44 = "https://placehold.co/44x44/E4E2DC/767467?text=%20"
 
 function rowToAlbum(row) {
   return {
@@ -247,9 +249,6 @@ function ProfilePage() {
   const [savingProfile, setSavingProfile] = useState(false)
   const [profileError, setProfileError] = useState('')
 
-  const [feedEvents, setFeedEvents] = useState([])
-  const [visibleFeedCount, setVisibleFeedCount] = useState(15)
-  const [feedLoading, setFeedLoading] = useState(true)
 
   const [comparison, setComparison] = useState(null)
   const [comparisonLoading, setComparisonLoading] = useState(true)
@@ -308,7 +307,6 @@ function ProfilePage() {
     }
 
     if (isOwnProfile) {
-      await loadFeed()
       await fetchWishlist()
       await loadSellerStats()
     } else if (allowed) {
@@ -416,112 +414,19 @@ function ProfilePage() {
     setAlbums(await attachListingStatus(albumsWithRarity, userId))
   }
 
-  async function loadFeed() {
-    setFeedLoading(true)
-    setVisibleFeedCount(15)
-
-    const { data: followRows } = await supabase
-      .from('follows')
-      .select('following_id')
-      .eq('follower_id', user.id)
-
-    const followedIds = (followRows || []).map((row) => row.following_id)
-
-    if (followedIds.length === 0) {
-      setFeedEvents([])
-      setFeedLoading(false)
-      return
-    }
-
-    const { data: profilesData } = await supabase
-      .from('profiles')
-      .select('*')
-      .in('id', followedIds)
-    const profileById = new Map((profilesData || []).map((p) => [p.id, p]))
-
-    const { data: albumsData } = await supabase
-      .from('albums')
-      .select('id, title, artist, image_url, user_id, created_at')
-      .in('user_id', followedIds)
-      .order('created_at', { ascending: false })
-      .limit(60)
-
-    const { data: listingsData } = await supabase
-      .from('listings')
-      .select('id, title, artist, image_url, user_id, price, created_at')
-      .in('user_id', followedIds)
-      .eq('status', 'active')
-      .order('created_at', { ascending: false })
-      .limit(60)
-
-    const { data: recommendationsData } = await supabase
-      .from('recommendations')
-      .select('id, title, artist, image_url, reason, user_id, created_at')
-      .in('user_id', followedIds)
-      .order('created_at', { ascending: false })
-      .limit(60)
-
-    const albumEvents = (albumsData || []).map((a) => ({
-      key: `album-${a.id}`,
-      type: 'added',
-      title: a.title,
-      artist: a.artist,
-      imageUrl: a.image_url,
-      actor: profileById.get(a.user_id),
-      createdAt: a.created_at
-    }))
-
-    const listingEvents = (listingsData || []).map((l) => ({
-      key: `listing-${l.id}`,
-      type: 'listed',
-      title: l.title,
-      artist: l.artist,
-      imageUrl: l.image_url,
-      price: l.price,
-      actor: profileById.get(l.user_id),
-      createdAt: l.created_at
-    }))
-
-    const recommendationEvents = (recommendationsData || []).map((r) => ({
-      key: `recommendation-${r.id}`,
-      type: 'recommended',
-      title: r.title,
-      artist: r.artist,
-      imageUrl: r.image_url,
-      reason: r.reason,
-      actor: profileById.get(r.user_id),
-      createdAt: r.created_at
-    }))
-
-    const combined = [...albumEvents, ...listingEvents, ...recommendationEvents]
-      .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
-
-    setFeedEvents(combined)
-    setFeedLoading(false)
-  }
-
   async function loadComparison() {
     setComparisonLoading(true)
 
-    const { data: myAlbumsData } = await supabase.from('albums').select('*').eq('user_id', user.id)
-    const myAlbums = myAlbumsData || []
-
-    const { data: theirAlbumsData } = await supabase.from('albums').select('*').eq('user_id', userId)
-    const theirAlbums = theirAlbumsData || []
-
-    const { data: myWishlistData } = await supabase.from('wishlist_items').select('*').eq('user_id', user.id)
-    const myWishlist = myWishlistData || []
-
-    const { data: theirWishlistData } = await supabase.from('wishlist_items').select('*').eq('user_id', userId)
-    const theirWishlist = theirWishlistData || []
-
-    const { data: myListingsData } = await supabase
-      .from('listings').select('title, artist').eq('user_id', user.id).eq('status', 'active')
-    const myListings = myListingsData || []
-
-    const { data: theirListingsData } = await supabase
-      .from('listings').select('title, artist').eq('user_id', userId).eq('status', 'active')
-    const theirListings = theirListingsData || []
+    const [myAlbumsRes, theirAlbumsRes, myWishlistRes, theirWishlistRes] = await Promise.all([
+      supabase.from('albums').select('*').eq('user_id', user.id),
+      supabase.from('albums').select('*').eq('user_id', userId),
+      supabase.from('wishlist_items').select('*').eq('user_id', user.id),
+      supabase.from('wishlist_items').select('*').eq('user_id', userId)
+    ])
+    const myAlbums = myAlbumsRes.data || []
+    const theirAlbums = theirAlbumsRes.data || []
+    const myWishlist = myWishlistRes.data || []
+    const theirWishlist = theirWishlistRes.data || []
 
     const myArtists = uniqueValues(myAlbums, (a) => a.artist)
     const theirArtists = uniqueValues(theirAlbums, (a) => a.artist)
@@ -561,9 +466,6 @@ function ProfilePage() {
       .map((d) => ({ decade: d, mine: myDecadeCounts[d], theirs: theirDecadeCounts[d] }))
       .sort((a, b) => (b.mine + b.theirs) - (a.mine + a.theirs))
       .slice(0, 3)
-
-    const myListingKeys = myListings.map(fuzzyMatchKey)
-    const theirListingKeys = theirListings.map(fuzzyMatchKey)
 
     const iCanFulfillCount = theirWishlist.filter((item) => myAlbumKeys.includes(fuzzyMatchKey(item))).length
     const theyCanFulfillCount = myWishlist.filter((item) => theirAlbumKeys.includes(fuzzyMatchKey(item))).length
@@ -1170,6 +1072,7 @@ function ProfilePage() {
               Message
             </Link>
           )}
+          {!isOwnProfile && <ReportButton targetType="profile" targetId={userId} />}
           {!isOwnProfile && (
             <FollowButton
               profileUserId={userId}
@@ -1225,6 +1128,7 @@ function ProfilePage() {
                   Message
                 </Link>
               )}
+              {!isOwnProfile && <ReportButton targetType="profile" targetId={userId} />}
               {!isOwnProfile && (
                 <FollowButton
                   profileUserId={userId}
@@ -1603,66 +1507,8 @@ function ProfilePage() {
         </aside>
 
         <section className="flex-1 min-w-0 px-5 lg:px-10 py-5 lg:py-7 pb-24 lg:pb-7">
-          {/* Recent Activity — Activity tab on mobile, own-profile only,
-              same as before. */}
-          {isOwnProfile && (
-            <div className={`mb-10 ${activityTabClass}`}>
-              <div className="bg-text inline-block px-2.5 py-1 mb-3">
-                <span className="font-mono text-[10px] tracking-wider uppercase font-bold text-bg">
-                  Recent activity — from people you follow
-                </span>
-              </div>
-
-              {feedLoading && <p className="text-xs text-text-muted font-sans">Loading...</p>}
-              {!feedLoading && feedEvents.length === 0 && (
-                <div className="flex items-center gap-3 bg-surface border border-border rounded-lg p-4 text-text-faint">
-                  <svg width="24" height="24" viewBox="0 0 32 32" fill="none" className="opacity-50 flex-shrink-0">
-                    <circle cx="16" cy="16" r="13" stroke="currentColor" strokeWidth="1.5" />
-                    <circle cx="16" cy="16" r="2.5" stroke="currentColor" strokeWidth="1.5" />
-                  </svg>
-                  <div>
-                    <p className="font-serif italic text-sm text-text-muted m-0">Nothing yet</p>
-                    <p className="font-sans text-xs m-0">Follow some collectors to see their activity here.</p>
-                  </div>
-                </div>
-              )}
-              <div
-                className="flex flex-col gap-3 max-h-[1200px] overflow-y-auto pr-1"
-                onScroll={(e) => {
-                  const el = e.currentTarget
-                  const nearBottom = el.scrollTop + el.clientHeight >= el.scrollHeight - 40
-                  if (nearBottom && visibleFeedCount < feedEvents.length) {
-                    setVisibleFeedCount((current) => Math.min(current + 15, feedEvents.length))
-                  }
-                }}
-              >
-                {feedEvents.slice(0, visibleFeedCount).map((event) => (
-                  <div key={event.key} className="flex items-center gap-3 bg-surface border border-border rounded-lg p-3">
-                    <img src={event.imageUrl || PLACEHOLDER_44} alt="" className="w-11 h-11 object-cover rounded flex-shrink-0" />
-                    <div className="min-w-0">
-                      <p className="text-sm text-text m-0 leading-snug">
-                        <strong>{displayNameFor(event.actor)}</strong>{' '}
-                        {event.type === 'added' && `added ${event.title}`}
-                        {event.type === 'listed' && (
-                          <>
-                            listed {event.title}
-                            <span className="text-accent"> — ${Number(event.price).toFixed(2)}</span>
-                          </>
-                        )}
-                        {event.type === 'recommended' && (
-                          <>recommends {event.title ? `${event.title} — ${event.artist}` : event.artist}</>
-                        )}
-                      </p>
-                      {event.type === 'recommended' && event.reason && (
-                        <p className="text-xs text-text-muted italic mt-0.5 mb-0">"{event.reason}"</p>
-                      )}
-                      <p className="text-[10px] text-text-faint font-mono mt-0.5">{timeAgo(event.createdAt)}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
+          {/* Latest activity strip — Activity tab on mobile, own-profile only. */}
+          {isOwnProfile && <ActivityStrip className={activityTabClass} />}
 
           {/* Mini-Crates — Activity tab on mobile. */}
           {isFollowing && (
@@ -1689,6 +1535,13 @@ function ProfilePage() {
           {/* Shelf — Shelf tab on mobile, the main reason anyone lands on
               this page. */}
           <div className={shelfTabClass}>
+          {isOwnProfile && (
+            <WelcomeChecklist
+              userId={user.id}
+              albumCount={realAlbums.length}
+              activeListingsCount={sellerStats?.activeListings}
+            />
+          )}
           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 mb-3">
             <h3 className="font-serif italic text-lg m-0">{isOwnProfile ? 'Your shelf' : 'Their shelf'}</h3>
             <div className="flex items-center gap-3 flex-wrap">
@@ -1742,6 +1595,14 @@ function ProfilePage() {
               )}
             </div>
           </div>
+
+          {isFollowing && (
+            <p className="text-[11px] text-text-faint font-sans mb-3 -mt-1">
+              {shelfView === 'wall' && 'Browse spines on a virtual record shelf, grouped by genre.'}
+              {shelfView === 'grid' && 'A compact grid of covers — fastest way to scan the whole collection.'}
+              {shelfView === 'crates' && 'Flip through genre-grouped stacks with depth and a filmstrip.'}
+            </p>
+          )}
 
           {!isFollowing ? (
             <p className="text-text-muted font-sans text-sm mb-10">Follow {displayNameFor(profile)} to see their shelf and marketplace.</p>
@@ -1802,6 +1663,29 @@ function ProfilePage() {
 
                     {normalizedCollectionSearch && filteredAlbums.length === 0 && (
                       <p className="text-text-muted font-sans text-sm mb-3">No albums match "{collectionSearch}".</p>
+                    )}
+
+                    {/* Grid view previously had no empty-shelf messaging at
+                        all — Wall and Crates each have one, so a brand-new
+                        profile viewed in Grid (the default for anyone who
+                        last switched views) just rendered a blank area with
+                        no explanation. Matches the Wall view's copy. */}
+                    {realAlbums.length === 0 && (
+                      <div className="bg-surface border border-dashed border-border rounded-lg p-10 text-center font-sans max-w-4xl">
+                        <p className="font-serif italic text-xl text-text mb-2">
+                          {isOwnProfile ? 'Your shelf is empty' : 'This shelf is empty'}
+                        </p>
+                        <p className="text-sm text-text-muted max-w-sm mx-auto">
+                          {isOwnProfile
+                            ? 'Add your first record to start building your collection.'
+                            : "They haven't added any albums yet."}
+                        </p>
+                        {isOwnProfile && (
+                          <p className="text-xs text-text-faint mt-4">
+                            Use <strong className="text-text-muted">+ Add album</strong> above to add one by hand, or <strong className="text-text-muted">Scan Crate</strong> to add several at once.
+                          </p>
+                        )}
+                      </div>
                     )}
 
                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-5">

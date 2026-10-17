@@ -3,8 +3,21 @@ import { Link, useNavigate } from 'react-router-dom'
 import { supabase } from './supabaseClient'
 import ListingPhotoGallery from './ListingPhotoGallery'
 import TradeOfferModal from './TradeOfferModal'
+import AuctionCountdown from './AuctionCountdown'
+import ReportButton from './ReportButton'
 
-function ListingDetailContent({ listing, currentUserId, onMarkSold, onCancelListing, onBidPlaced, onListingUpdated, onClose }) {
+// Mirrors the database's min_bid_increment() so the form can show the real
+// minimum up front. The database remains the authority on what's accepted.
+function minBidIncrement(current) {
+  const n = Number(current)
+  if (n < 25) return 0.5
+  if (n < 100) return 1
+  if (n < 250) return 2.5
+  if (n < 500) return 5
+  return 10
+}
+
+function ListingDetailContent({ listing, currentUserId, onMarkSold, onCancelListing, onBidPlaced, onListingUpdated }) {
   const navigate = useNavigate()
   const [addingToCart, setAddingToCart] = useState(false)
   const [addedToCart, setAddedToCart] = useState(false)
@@ -39,6 +52,9 @@ function ListingDetailContent({ listing, currentUserId, onMarkSold, onCancelList
   const [bidSubmitting, setBidSubmitting] = useState(false)
   const [bidError, setBidError] = useState('')
   const [endingAuction, setEndingAuction] = useState(false)
+  // The end time can move after we load it (anti-sniping extends it when a
+  // bid lands in the final 5 minutes), so track it separately from the prop.
+  const [liveEndsAt, setLiveEndsAt] = useState(listing.endsAt)
 
   const hasPressingDetails =
     listing.label || listing.pressingCountry || listing.matrixNumber ||
@@ -47,7 +63,7 @@ function ListingDetailContent({ listing, currentUserId, onMarkSold, onCancelList
   const isOwner = currentUserId && listing.userId === currentUserId
   const isSold = listing.status === 'sold'
   const isAuction = listing.listingType === 'auction'
-  const auctionEnded = isAuction && listing.endsAt && new Date(listing.endsAt) < new Date()
+  const auctionEnded = isAuction && liveEndsAt && new Date(liveEndsAt) < new Date()
   const auctionNotStarted = isAuction && listing.startsAt && new Date(listing.startsAt) > new Date()
   const wantsTradeInfo = listing.listingType === 'trade' || listing.listingType === 'fixed_or_trade'
 
@@ -74,9 +90,11 @@ function ListingDetailContent({ listing, currentUserId, onMarkSold, onCancelList
     setBidSubmitting(false)
     setBidError('')
     setEndingAuction(false)
+    setLiveEndsAt(listing.endsAt)
 
     if (isAuction) {
       fetchBids()
+      refreshEndsAt()
     }
   }, [listing.id])
 
@@ -104,6 +122,14 @@ function ListingDetailContent({ listing, currentUserId, onMarkSold, onCancelList
     navigate(`/checkout?listing=${listing.id}`)
   }
 
+  async function refreshEndsAt() {
+    const { data } = await supabase.from('listings').select('ends_at').eq('id', listing.id).single()
+    if (data?.ends_at) {
+      setLiveEndsAt(data.ends_at)
+      if (data.ends_at !== listing.endsAt) onListingUpdated?.(listing.id, { endsAt: data.ends_at })
+    }
+  }
+
   async function fetchBids() {
     setBidsLoading(true)
     const { data, error } = await supabase
@@ -122,6 +148,9 @@ function ListingDetailContent({ listing, currentUserId, onMarkSold, onCancelList
 
   const highestBid = bids.length > 0 ? bids[0] : null
   const currentAuctionPrice = highestBid ? highestBid.amount : listing.price
+  const minNextBid = highestBid
+    ? Number(highestBid.amount) + minBidIncrement(highestBid.amount)
+    : Number(listing.price)
   const userIsTopBidder = highestBid && currentUserId && highestBid.bidder_id === currentUserId
 
   async function handleConfirmSold() {
@@ -138,7 +167,7 @@ function ListingDetailContent({ listing, currentUserId, onMarkSold, onCancelList
     try {
       await onMarkSold(listing.id, parsedPrice)
       // On success, MarketplacePage removes this listing and closes the modal.
-    } catch (err) {
+    } catch {
       setErrorMsg('Something went wrong — try again.')
       setSubmitting(false)
     }
@@ -198,16 +227,14 @@ function ListingDetailContent({ listing, currentUserId, onMarkSold, onCancelList
 
   async function handlePlaceBid() {
     const parsedAmount = Number(bidAmountInput)
-    const minimumRequired = highestBid ? highestBid.amount : listing.price
-    const minimumLabel = highestBid ? 'higher than the current highest bid' : 'at least the starting price'
 
     if (!bidAmountInput || Number.isNaN(parsedAmount)) {
       setBidError('Enter a valid amount.')
       return
     }
 
-    if ((highestBid && parsedAmount <= minimumRequired) || (!highestBid && parsedAmount < minimumRequired)) {
-      setBidError(`Bid must be ${minimumLabel} ($${Number(minimumRequired).toFixed(2)}).`)
+    if (parsedAmount < minNextBid) {
+      setBidError(`Bid must be at least $${minNextBid.toFixed(2)}.`)
       return
     }
 
@@ -234,6 +261,8 @@ function ListingDetailContent({ listing, currentUserId, onMarkSold, onCancelList
     setBidSubmitting(false)
     onBidPlaced?.(listing.id, parsedAmount)
     fetchBids()
+    // A late bid may have pushed the end time out; pick up the new one.
+    refreshEndsAt()
   }
 
   async function handleEndAuction() {
@@ -246,7 +275,7 @@ function ListingDetailContent({ listing, currentUserId, onMarkSold, onCancelList
       } else {
         await onCancelListing(listing.id)
       }
-    } catch (err) {
+    } catch {
       setErrorMsg('Something went wrong — try again.')
       setEndingAuction(false)
     }
@@ -327,7 +356,7 @@ function ListingDetailContent({ listing, currentUserId, onMarkSold, onCancelList
                     type="number"
                     min="0"
                     step="0.01"
-                    placeholder={highestBid ? `More than $${Number(highestBid.amount).toFixed(2)}` : `At least $${Number(listing.price).toFixed(2)}`}
+                    placeholder={`At least $${minNextBid.toFixed(2)}`}
                     value={bidAmountInput}
                     onChange={(event) => setBidAmountInput(event.target.value)}
                     disabled={bidSubmitting}
@@ -342,6 +371,10 @@ function ListingDetailContent({ listing, currentUserId, onMarkSold, onCancelList
                   </button>
                 </div>
                 {bidError && <p className="text-sm text-[#c1666b] mt-2">{bidError}</p>}
+                <p className="text-xs text-text-faint mt-2 mb-0">
+                  Minimum next bid: ${minNextBid.toFixed(2)}. A bid in the final 5 minutes extends the auction by 5 minutes.
+                </p>
+                {liveEndsAt && <AuctionCountdown endsAt={liveEndsAt} />}
               </>
             )}
             {!bidsLoading && bids.length > 0 && (
@@ -430,6 +463,7 @@ function ListingDetailContent({ listing, currentUserId, onMarkSold, onCancelList
             >
               Message the seller with a question
             </Link>
+            <ReportButton targetType="listing" targetId={listing.id} label="Report this listing" className="block mt-2" />
           </div>
         )}
 

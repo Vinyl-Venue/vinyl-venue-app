@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react'
 import { supabase } from './supabaseClient'
+import TrustedBadge from './TrustedBadge'
+import { isTrustedSeller } from './sellerTrust'
 
 function StarDisplay({ rating }) {
   return (
@@ -60,6 +62,7 @@ function ReviewsSection({ sellerId }) {
         <span className="text-text-muted text-sm">
           {averageRating.toFixed(1)} ({reviews.length} review{reviews.length === 1 ? '' : 's'})
         </span>
+        {isTrustedSeller(averageRating, reviews.length) && <TrustedBadge />}
       </div>
 
       <div className="flex flex-col gap-2">

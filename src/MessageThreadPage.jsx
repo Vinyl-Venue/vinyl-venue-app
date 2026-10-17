@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { useParams, useSearchParams } from 'react-router-dom'
+import { Link, useParams, useSearchParams } from 'react-router-dom'
 import Header from './Header'
 import { supabase } from './supabaseClient'
 import { useAuth } from './AuthContext'
@@ -121,15 +121,25 @@ function MessageThreadPage() {
   return (
     <>
       <Header />
-      <section className="px-10 pb-10">
-        <div className="flex items-center gap-3 mb-4">
+      <section className="px-5 lg:px-10 py-5 lg:py-7 pb-24 lg:pb-10">
+        <Link
+          to="/messages"
+          className="text-xs text-text-faint no-underline hover:text-accent font-sans block mb-3"
+        >
+          ← Messages
+        </Link>
+
+        <Link
+          to={`/profile/${otherId}`}
+          className="flex items-center gap-3 mb-4 no-underline text-text hover:text-accent transition-colors w-fit"
+        >
           <img
             src={otherProfile?.avatar_url || "https://placehold.co/40x40/1c1a15/a8a29a?text=%20"}
             alt=""
             className="w-10 h-10 object-cover rounded-full"
           />
           <h2 className="text-2xl font-serif m-0">{otherProfile?.display_name || otherProfile?.email || 'Unknown user'}</h2>
-        </div>
+        </Link>
 
         {loading && <p className="font-sans text-sm text-text-muted">Loading...</p>}
 

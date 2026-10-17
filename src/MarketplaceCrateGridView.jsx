@@ -28,6 +28,9 @@ function PeekPreview({ listing }) {
       <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/75 to-transparent px-2 py-1.5">
         <p className="text-white text-[11px] font-bold m-0 truncate">{listing.title}</p>
         <p className="text-white/80 text-[10px] m-0 truncate">{listing.artist}</p>
+        {listing.sellerReviewCount > 0 && (
+          <p className="text-[10px] text-white/90 m-0">&#9733; {listing.sellerRating.toFixed(1)} <span className="opacity-70">({listing.sellerReviewCount})</span></p>
+        )}
         {listing.listingType === 'auction' ? (
           <p className="text-[10px] font-bold m-0 mt-0.5" style={{ color: '#f0b98c' }}>
             ${Number(listing.currentBid ?? listing.price).toFixed(2)}

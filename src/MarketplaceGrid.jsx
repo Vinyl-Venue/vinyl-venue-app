@@ -1,4 +1,6 @@
 import AuctionCountdown from './AuctionCountdown'
+import TrustedBadge from './TrustedBadge'
+import { isTrustedSeller } from './sellerTrust'
 
 const BADGE_COLORS = {
   fixed: 'bg-accent',
@@ -36,7 +38,7 @@ function MarketplaceGrid({ listings, onSelectListing }) {
                 className="w-full aspect-square object-cover"
               />
               <span className={`absolute top-2 right-2 font-sans text-[0.7rem] font-bold px-2 py-1 rounded text-bg uppercase tracking-wide ${BADGE_COLORS[listing.listingType]}`}>
-                {listing.listingTypeLabel}
+                {isAuction ? 'Live Auction' : listing.listingTypeLabel}
               </span>
             </div>
             <p className="m-0 text-sm px-2.5 pt-2.5 text-text truncate">{listing.title}</p>
@@ -54,6 +56,18 @@ function MarketplaceGrid({ listings, onSelectListing }) {
               )}
               {listing.tradePreference && (
                 <p className="text-text-muted text-xs mt-1 mb-0 truncate">Wants: {listing.tradePreference}</p>
+              )}
+              {listing.sellerReviewCount !== undefined && (
+                <p className="text-text-faint text-xs mt-1 mb-0">
+                  {listing.sellerReviewCount > 0 ? (
+                    <>
+                      <span className="text-accent">&#9733;</span> {listing.sellerRating.toFixed(1)} ({listing.sellerReviewCount})
+                      {isTrustedSeller(listing.sellerRating, listing.sellerReviewCount) && <TrustedBadge className="ml-1.5" />}
+                    </>
+                  ) : (
+                    'New seller'
+                  )}
+                </p>
               )}
             </div>
           </div>

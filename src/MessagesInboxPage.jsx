@@ -87,7 +87,7 @@ function MessagesInboxPage() {
   return (
     <>
       <Header />
-      <section className="px-10 pb-10">
+      <section className="px-5 lg:px-10 py-5 lg:py-7 pb-24 lg:pb-10">
         <h2 className="text-2xl font-serif mb-4">Messages</h2>
 
         {loading && <p className="font-sans text-sm text-text-muted">Loading...</p>}
@@ -105,14 +105,14 @@ function MessagesInboxPage() {
               to={`/messages/${c.otherId}`}
               className="flex items-center justify-between bg-surface border border-border rounded px-4 py-3 no-underline text-text hover:border-accent"
             >
-              <div className="flex items-center gap-3 font-sans">
+              <div className="flex items-center gap-3 font-sans min-w-0">
                 <img
                   src={c.avatarUrl || "https://placehold.co/36x36/1c1a15/a8a29a?text=%20"}
                   alt=""
                   className="w-9 h-9 object-cover rounded-full flex-shrink-0"
                 />
-                <div>
-                  <p className={`m-0 text-sm ${c.unreadCount > 0 ? 'font-bold' : ''}`}>{c.displayName}</p>
+                <div className="min-w-0">
+                  <p className={`m-0 text-sm truncate ${c.unreadCount > 0 ? 'font-bold' : ''}`}>{c.displayName}</p>
                   <p className="m-0 text-xs text-text-muted mt-1 truncate max-w-md">{c.lastBody}</p>
                 </div>
               </div>

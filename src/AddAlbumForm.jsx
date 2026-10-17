@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react'
 import AutocompleteInput from './AutocompleteInput'
 import SelectWithCustom from './SelectWithCustom'
 import SpecialTagsInput from './SpecialTagsInput'
-import { supabase } from './supabaseClient'
 import { discogsSearch, discogsFetchRelease } from './utils'
 
 const CONDITION_OPTIONS = [

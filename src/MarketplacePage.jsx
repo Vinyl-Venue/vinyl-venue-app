@@ -12,6 +12,7 @@ import AuctionCountdown from './AuctionCountdown'
 import { supabase } from './supabaseClient'
 import { useAuth } from './AuthContext'
 import { rowToListing, attachHighestBids, LISTING_TYPE_LABELS, timeAgo, displayNameFor, avatarPlaceholder } from './utils'
+import { SkeletonGrid } from './Skeleton'
 
 // Same convention as MarketplaceGrid.jsx's BADGE_COLORS and ShelfWallView's
 // LISTING_BADGES, so a listing reads consistently everywhere it appears.
@@ -129,7 +130,32 @@ function MarketplacePage() {
       return new Date(listing.endsAt) > now
     })
 
-    setListings(visible)
+    // Seller reputation on every card, not just followed sellers: the
+    // moment you're deciding whether to trust a stranger is exactly when
+    // an average rating and review count matter most.
+    const sellerIds = [...new Set(visible.map((l) => l.userId).filter(Boolean))]
+    const { data: reviewRows } = sellerIds.length > 0
+      ? await supabase.from('reviews').select('seller_id, rating').in('seller_id', sellerIds)
+      : { data: [] }
+
+    const ratingStats = new Map()
+    for (const row of reviewRows || []) {
+      const stat = ratingStats.get(row.seller_id) || { sum: 0, count: 0 }
+      stat.sum += row.rating
+      stat.count += 1
+      ratingStats.set(row.seller_id, stat)
+    }
+
+    setListings(
+      visible.map((l) => {
+        const stat = ratingStats.get(l.userId)
+        return {
+          ...l,
+          sellerRating: stat ? stat.sum / stat.count : null,
+          sellerReviewCount: stat ? stat.count : 0
+        }
+      })
+    )
     setLoading(false)
     loadAuctionBidCounts(visible)
   }
@@ -710,7 +736,13 @@ function MarketplacePage() {
                 </button>
               </div>
 
-              {loading && <p>Loading listings...</p>}
+              <p className="text-[11px] text-text-faint font-sans mb-4 -mt-2">
+                {marketplaceView === 'wall' && 'Browse listings on a virtual record shelf, grouped by genre.'}
+                {marketplaceView === 'grid' && 'A compact grid of covers — fastest way to scan everything for sale.'}
+                {marketplaceView === 'crates' && 'Flip through genre-grouped stacks with depth and a filmstrip.'}
+              </p>
+
+              {loading && <SkeletonGrid />}
               {!loading && filtersActive && filteredListings.length === 0 ? (
                 <p className="text-text-muted font-sans text-sm">No listings match your filters.</p>
               ) : (

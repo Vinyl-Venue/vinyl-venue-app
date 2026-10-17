@@ -6,6 +6,8 @@ import NotificationBell from './NotificationBell'
 import MessagesLink from './MessagesLink'
 import CartLink from './CartLink'
 import TickerBar from './TickerBar'
+import SearchBox from './SearchBox'
+import MobileSearch from './MobileSearch'
 import { avatarPlaceholder } from './utils'
 
 // "Orders" now covers /orders, /purchases, and /trade-offers — all three
@@ -67,21 +69,11 @@ function DiscoverIcon() {
   )
 }
 
-function SearchIcon() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 20 20" fill="none" aria-hidden="true">
-      <circle cx="9" cy="9" r="6.5" stroke="currentColor" strokeWidth="1.6" />
-      <path d="M18 18L14 14" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-    </svg>
-  )
-}
-
 function Header() {
   const { user } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
   const [ownProfile, setOwnProfile] = useState(null)
-  const [searchInput, setSearchInput] = useState('')
 
   useEffect(() => {
     if (!user) return
@@ -121,13 +113,6 @@ function Header() {
     return location.pathname.startsWith(tab.to)
   }
 
-  function handleSearchSubmit(event) {
-    event.preventDefault()
-    const trimmed = searchInput.trim()
-    if (!trimmed) return
-    navigate(`/search?q=${encodeURIComponent(trimmed)}`)
-  }
-
   return (
     <>
       {user && <TickerBar />}
@@ -143,18 +128,7 @@ function Header() {
                   active listings; searches your own shelf separately
                   since that's personal inventory, not something anyone
                   else should be able to search into. */}
-              <form onSubmit={handleSearchSubmit} className="hidden lg:block relative flex-1 max-w-xs">
-                <input
-                  type="text"
-                  value={searchInput}
-                  onChange={(e) => setSearchInput(e.target.value)}
-                  placeholder="Search records, people, or listings..."
-                  className="w-full bg-surface border border-border text-text pl-8 pr-3 py-1.5 rounded-full text-xs font-sans"
-                />
-                <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-faint pointer-events-none">
-                  <SearchIcon />
-                </span>
-              </form>
+              <SearchBox />
 
               {/* Desktop-only labeled nav — mobile gets the same four
                   (plus Shelf, which only exists as a mobile tab since
@@ -192,6 +166,7 @@ function Header() {
                   by a fixed channel name, so this row must never be
                   duplicated across a desktop/mobile split. */}
               <div className="flex items-center gap-3 lg:pl-4 lg:border-l lg:border-border flex-shrink-0">
+                <MobileSearch />
                 <CartLink />
                 <MessagesLink />
                 <NotificationBell />
