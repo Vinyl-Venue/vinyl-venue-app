@@ -24,6 +24,7 @@ if (missingKeys.length > 0) {
     </div>
   )
 } else {
+  import('./errorReporter').then(({ installErrorReporting }) => installErrorReporting())
   import('./App.jsx').then(({ default: App }) => {
     root.render(
       <StrictMode>

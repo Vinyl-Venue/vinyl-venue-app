@@ -31,6 +31,7 @@ const TermsPage = lazy(() => import('./TermsPage'))
 const PrivacyPage = lazy(() => import('./PrivacyPage'))
 const RulesPage = lazy(() => import('./RulesPage'))
 const AdminReportsPage = lazy(() => import('./AdminReportsPage'))
+const AdminErrorsPage = lazy(() => import('./AdminErrorsPage'))
 
 // Shelf's collection + wishlist management now lives on Profile. This keeps
 // /dashboard alive as a redirect rather than a 404, in case anything (e.g.
@@ -92,6 +93,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <AdminReportsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/errors"
+            element={
+              <ProtectedRoute>
+                <AdminErrorsPage />
               </ProtectedRoute>
             }
           />

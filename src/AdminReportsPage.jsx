@@ -4,6 +4,7 @@ import Header from './Header'
 import NotFoundPage from './NotFoundPage'
 import { supabase } from './supabaseClient'
 import { useAuth } from './AuthContext'
+import { useIsAdmin } from './useIsAdmin'
 import { displayNameFor, timeAgo } from './utils'
 import { SkeletonRows } from './Skeleton'
 
@@ -20,21 +21,13 @@ const REASON_LABELS = {
 // else gets the ordinary not-found page, so it does not advertise itself.
 function AdminReportsPage() {
   const { user } = useAuth()
-  const [isAdmin, setIsAdmin] = useState(null)
+  const isAdmin = useIsAdmin(user.id)
   const [tab, setTab] = useState('open')
   const [loading, setLoading] = useState(true)
   const [rows, setRows] = useState([])
   const [confirmId, setConfirmId] = useState(null)
   const [busyId, setBusyId] = useState(null)
   const [error, setError] = useState('')
-
-  useEffect(() => {
-    async function check() {
-      const { data } = await supabase.from('admins').select('user_id').eq('user_id', user.id).maybeSingle()
-      setIsAdmin(!!data)
-    }
-    check()
-  }, [user.id])
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -121,7 +114,7 @@ function AdminReportsPage() {
       <main className="max-w-[820px] mx-auto px-5 lg:px-10 py-6 pb-24 lg:pb-10 font-sans">
         <h1 className="font-serif italic font-normal text-3xl mt-0 mb-1">Reports</h1>
         <p className="text-xs text-text-faint mt-0 mb-4">
-          Removing a listing cancels it for everyone, including any live bids. Reports on the same listing or person are closed together.
+          Removing a listing cancels it for everyone, including any live bids. Reports on the same listing or person are closed together. <Link to="/admin/errors" className="text-text-muted">View errors</Link>
         </p>
 
         <div className="flex gap-2 mb-5">

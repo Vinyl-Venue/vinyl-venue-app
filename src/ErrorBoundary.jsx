@@ -1,4 +1,5 @@
 import { Component } from 'react'
+import { reportError } from './errorReporter'
 
 // Catches unexpected rendering errors so one broken page shows a friendly
 // message and a way back, instead of the whole app going blank.
@@ -14,6 +15,7 @@ class ErrorBoundary extends Component {
 
   componentDidCatch(error, info) {
     console.error('Unexpected error:', error, info?.componentStack)
+    reportError('render', error, `${error?.stack || ''}\n${info?.componentStack || ''}`)
   }
 
   render() {
