@@ -82,7 +82,7 @@ export default function useSearchSuggestions(query, user) {
       }
       for (const p of peopleRes.data || []) {
         next.push({
-          key: `p${p.id}`, group: 'People', image: p.avatar_url || avatarPlaceholder(32), round: true,
+          key: `p${p.id}`, group: 'People', image: p.avatar_url || avatarPlaceholder(32, p.display_name), round: true,
           title: p.display_name || 'Collector', sub: 'Profile', to: `/profile/${p.id}`
         })
       }

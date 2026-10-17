@@ -61,7 +61,7 @@ function AdminReportsPage() {
     }
     for (const l of listings || []) profileIds.add(l.user_id)
     const { data: profiles } = profileIds.size > 0
-      ? await supabase.from('profiles').select('id, display_name, email').in('id', [...profileIds])
+      ? await supabase.from('profiles').select('id, display_name').in('id', [...profileIds])
       : { data: [] }
     const profileById = new Map((profiles || []).map((p) => [p.id, p]))
 

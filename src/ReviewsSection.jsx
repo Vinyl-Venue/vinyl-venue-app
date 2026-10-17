@@ -24,7 +24,7 @@ function ReviewsSection({ sellerId }) {
     setLoading(true)
     const { data, error } = await supabase
       .from('reviews')
-      .select('*, profiles!reviews_reviewer_id_fkey(email, display_name)')
+      .select('*, profiles!reviews_reviewer_id_fkey(display_name)')
       .eq('seller_id', sellerId)
       .order('created_at', { ascending: false })
 
@@ -70,7 +70,7 @@ function ReviewsSection({ sellerId }) {
           <div key={review.id} className="bg-surface border border-border rounded px-4 py-3">
             <div className="flex items-center justify-between">
               <StarDisplay rating={review.rating} />
-              <span className="text-text-muted text-xs">{review.profiles?.display_name || review.profiles?.email || 'Someone'}</span>
+              <span className="text-text-muted text-xs">{review.profiles?.display_name || 'Someone'}</span>
             </div>
             {review.body && <p className="text-sm text-text mt-1.5 mb-0">{review.body}</p>}
           </div>

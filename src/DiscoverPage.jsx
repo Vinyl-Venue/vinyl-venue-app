@@ -87,7 +87,7 @@ function DiscoverPage() {
     const { data, error } = await supabase
       .from('profiles')
       .select('*')
-      .ilike('email', `%${searchText}%`)
+      .or(`display_name.ilike.%${searchText.trim().replace(/[%,()]/g, ' ')}%,band_name.ilike.%${searchText.trim().replace(/[%,()]/g, ' ')}%`)
       .neq('id', user.id)
       .limit(20)
 
@@ -139,7 +139,7 @@ function DiscoverPage() {
           <form onSubmit={handleSearch} className="flex flex-col sm:flex-row gap-2.5 mb-4">
             <input
               type="text"
-              placeholder="Search by email to find people..."
+              placeholder="Search by name or band to find people..."
               value={searchText}
               onChange={(e) => setSearchText(e.target.value)}
               className="bg-surface border border-border text-text px-3 py-2 rounded font-sans text-sm w-full sm:w-72"
@@ -155,7 +155,7 @@ function DiscoverPage() {
                 return (
                   <div key={result.id} className="flex items-center gap-3 bg-surface border border-border rounded px-4 py-3 font-sans text-sm hover:border-accent min-w-0">
                     <Link to={`/profile/${result.id}`} className="flex items-center gap-3 flex-1 min-w-0 no-underline text-text">
-                      <img src={result.avatar_url || avatarPlaceholder(32)} alt="" className="w-8 h-8 object-cover rounded-full flex-shrink-0" />
+                      <img src={result.avatar_url || avatarPlaceholder(32, displayNameFor(result))} alt="" className="w-8 h-8 object-cover rounded-full flex-shrink-0" />
                       <span className="truncate">{displayNameFor(result)}</span>
                     </Link>
                     {alreadyFollowing ? (
@@ -186,7 +186,7 @@ function DiscoverPage() {
               <div className="flex flex-col gap-2">
                 {followingProfiles.map((p) => (
                   <Link key={p.id} to={`/profile/${p.id}`} className="flex items-center gap-3 bg-surface border border-border rounded px-4 py-3 font-sans text-sm no-underline text-text hover:border-accent min-w-0">
-                    <img src={p.avatar_url || avatarPlaceholder(32)} alt="" className="w-8 h-8 object-cover rounded-full flex-shrink-0" />
+                    <img src={p.avatar_url || avatarPlaceholder(32, displayNameFor(p))} alt="" className="w-8 h-8 object-cover rounded-full flex-shrink-0" />
                     <span className="truncate">{displayNameFor(p)}</span>
                   </Link>
                 ))}
@@ -203,7 +203,7 @@ function DiscoverPage() {
                   return (
                     <div key={p.id} className="flex items-center gap-3 bg-surface border border-border rounded px-4 py-3 font-sans text-sm hover:border-accent min-w-0">
                       <Link to={`/profile/${p.id}`} className="flex items-center gap-3 flex-1 min-w-0 no-underline text-text">
-                        <img src={p.avatar_url || avatarPlaceholder(32)} alt="" className="w-8 h-8 object-cover rounded-full flex-shrink-0" />
+                        <img src={p.avatar_url || avatarPlaceholder(32, displayNameFor(p))} alt="" className="w-8 h-8 object-cover rounded-full flex-shrink-0" />
                         <span className="truncate">{displayNameFor(p)}</span>
                       </Link>
                       {!alreadyFollowing && (

@@ -55,7 +55,7 @@ function NotificationBell() {
   async function fetchNotifications() {
     const { data, error } = await supabase
       .from('notifications')
-      .select('*, profiles!notifications_from_user_id_fkey(email, display_name)')
+      .select('*, profiles!notifications_from_user_id_fkey(display_name)')
       .eq('user_id', user.id)
       .order('created_at', { ascending: false })
       .limit(20)
@@ -85,7 +85,7 @@ function NotificationBell() {
   // reconstructs the same text those rows always showed.
   function displayText(n) {
     if (n.message) return n.message
-    return `${n.profiles?.display_name || n.profiles?.email || 'Someone'} added ${n.album_title} by ${n.album_artist} — on your wishlist!`
+    return `${n.profiles?.display_name || 'Someone'} added ${n.album_title} by ${n.album_artist} — on your wishlist!`
   }
 
   function NotificationRow({ n }) {

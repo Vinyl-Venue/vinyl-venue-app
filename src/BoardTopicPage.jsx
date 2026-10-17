@@ -145,7 +145,7 @@ function BoardTopicPage() {
           <div className="bg-surface border border-border rounded p-4 mb-4">
             <div className="flex items-center gap-2 mb-2">
               <img
-                src={profilesById[topic.user_id]?.avatar_url || avatarPlaceholder(32)}
+                src={profilesById[topic.user_id]?.avatar_url || avatarPlaceholder(32, displayNameFor(profilesById[topic.user_id]))}
                 alt=""
                 className="w-8 h-8 object-cover rounded-full"
               />
@@ -163,7 +163,7 @@ function BoardTopicPage() {
               <div key={reply.id} className="bg-bg border border-border rounded px-4 py-3">
                 <div className="flex items-center gap-2 mb-1">
                   <img
-                    src={profilesById[reply.user_id]?.avatar_url || avatarPlaceholder(32)}
+                    src={profilesById[reply.user_id]?.avatar_url || avatarPlaceholder(32, displayNameFor(profilesById[reply.user_id]))}
                     alt=""
                     className="w-6 h-6 object-cover rounded-full"
                   />

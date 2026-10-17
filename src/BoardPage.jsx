@@ -181,7 +181,7 @@ function BoardPage() {
               className="flex items-center gap-3 bg-surface border border-border rounded px-4 py-3 no-underline text-text hover:border-accent"
             >
               <img
-                src={topic.author?.avatar_url || avatarPlaceholder(32)}
+                src={topic.author?.avatar_url || avatarPlaceholder(32, displayNameFor(topic.author))}
                 alt=""
                 className="w-9 h-9 object-cover rounded-full flex-shrink-0"
               />

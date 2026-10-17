@@ -33,7 +33,7 @@ function SearchResultsPage() {
     }
   }, [query])
 
-  // Each word must match somewhere (title OR artist, or name OR email),
+  // Each word must match somewhere (title OR artist, or name OR band name),
   // so "miles kind" finds Kind of Blue by Miles Davis. Characters that
   // are special inside a PostgREST filter string (commas, parentheses,
   // quotes, % and _) are stripped first: a search like "Sgt. Pepper's
@@ -70,7 +70,7 @@ function SearchResultsPage() {
       matchAllTerms(
         supabase.from('profiles').select('*').neq('id', user.id).limit(20),
         terms,
-        ['email', 'display_name']
+        ['display_name', 'band_name']
       ),
       matchAllTerms(
         supabase
@@ -99,10 +99,10 @@ function SearchResultsPage() {
 
     const profileIds = [...new Set([...listingRows.map((r) => r.user_id), ...shelfRows.map((r) => r.user_id)])]
     const { data: ownerProfiles } = profileIds.length > 0
-      ? await supabase.from('profiles').select('id, display_name, email').in('id', profileIds)
+      ? await supabase.from('profiles').select('id, display_name').in('id', profileIds)
       : { data: [] }
     const ownerById = new Map((ownerProfiles || []).map((p) => [p.id, p]))
-    const nameFor = (id) => ownerById.get(id)?.display_name || ownerById.get(id)?.email || 'Unknown'
+    const nameFor = (id) => ownerById.get(id)?.display_name || 'Unknown'
 
     setPeople(peopleRes.data || [])
     setListings(listingRows.map((row) => ({
@@ -241,7 +241,7 @@ function SearchResultsPage() {
                   to={`/profile/${person.id}`}
                   className="flex items-center gap-3 bg-surface border border-border rounded px-4 py-3 font-sans text-sm no-underline text-text hover:border-accent min-w-0"
                 >
-                  <img src={person.avatar_url || avatarPlaceholder(32)} alt="" className="w-8 h-8 object-cover rounded-full flex-shrink-0" />
+                  <img src={person.avatar_url || avatarPlaceholder(32, displayNameFor(person))} alt="" className="w-8 h-8 object-cover rounded-full flex-shrink-0" />
                   <span className="truncate">{displayNameFor(person)}</span>
                 </Link>
               ))}

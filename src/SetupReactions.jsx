@@ -46,7 +46,7 @@ function SetupReactions({ profileUserId, currentUserId, isOwnProfile }) {
     setCommentsLoading(true)
     const { data, error } = await supabase
       .from('setup_comments')
-      .select('*, profiles!user_id(display_name, email, avatar_url)')
+      .select('*, profiles!user_id(display_name, avatar_url)')
       .eq('profile_user_id', profileUserId)
       .order('created_at', { ascending: true })
 
@@ -143,7 +143,7 @@ function SetupReactions({ profileUserId, currentUserId, isOwnProfile }) {
           {comments.map((c) => (
             <div key={c.id} className="flex items-start gap-2">
               <img
-                src={c.profiles?.avatar_url || avatarPlaceholder(28)}
+                src={c.profiles?.avatar_url || avatarPlaceholder(28, displayNameFor(c.profiles))}
                 alt=""
                 className="w-7 h-7 object-cover rounded-full flex-shrink-0"
               />

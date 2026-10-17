@@ -84,14 +84,14 @@ function CheckoutPage() {
     const sellerIds = [...new Set((listingRows || []).map((row) => row.user_id))]
 
     const { data: profiles } = sellerIds.length > 0
-      ? await supabase.from('profiles').select('id, display_name, email').in('id', sellerIds)
+      ? await supabase.from('profiles').select('id, display_name').in('id', sellerIds)
       : { data: [] }
     const profileById = new Map((profiles || []).map((p) => [p.id, p]))
 
     const names = {}
     for (const [listingId, sellerId] of sellerIdByListingId.entries()) {
       const profile = profileById.get(sellerId)
-      names[listingId] = profile?.display_name || profile?.email || 'Unknown seller'
+      names[listingId] = profile?.display_name || 'Unknown seller'
     }
     setSellerNames(names)
   }

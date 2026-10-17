@@ -265,7 +265,7 @@ export const FILTERS = [
 ]
 
 function displayLabel(profile) {
-  return profile?.display_name || profile?.email || 'a collector'
+  return profile?.display_name || 'a collector'
 }
 
 function uniqueArtists(items) {

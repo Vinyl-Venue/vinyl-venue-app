@@ -386,7 +386,7 @@ function SellerMarketplacePage() {
         <div className="grid gap-7 grid-cols-1 lg:grid-cols-[1fr_380px]">
           <div className="min-w-0">
             <h2 className="text-2xl font-serif mb-1">
-              {isOwnMarketplace ? 'My marketplace' : `${profile ? (profile.display_name || profile.email) : 'Seller'}'s marketplace`}
+              {isOwnMarketplace ? 'My marketplace' : `${profile ? (profile.display_name || 'Seller') : 'Seller'}'s marketplace`}
             </h2>
 
             {isAllowed && (

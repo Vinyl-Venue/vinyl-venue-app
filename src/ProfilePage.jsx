@@ -1042,7 +1042,7 @@ function ProfilePage() {
           the tabs regardless of which tab is active. */}
       <div className="lg:hidden px-5 py-5 border-b border-border">
         <div className="flex items-center gap-3 mb-3">
-          <img src={avatarPreviewUrl || avatarPlaceholder(56)} alt="" className="w-14 h-14 object-cover rounded-full flex-shrink-0" />
+          <img src={avatarPreviewUrl || avatarPlaceholder(56, displayNameFor(profile))} alt="" className="w-14 h-14 object-cover rounded-full flex-shrink-0" />
           <div className="min-w-0 flex-1">
             <h2 className="text-xl font-serif italic mb-0.5 truncate">{displayNameFor(profile)}</h2>
             {profile.bio && <p className="text-text-muted font-sans text-xs truncate">{profile.bio}</p>}
@@ -1099,10 +1099,10 @@ function ProfilePage() {
               on mobile routes into this tab. */}
           <div className="hidden lg:block">
             <div className="flex items-center gap-3 mb-2">
-              <img src={avatarPreviewUrl || avatarPlaceholder(56)} alt="" className="w-14 h-14 object-cover rounded-full flex-shrink-0" />
+              <img src={avatarPreviewUrl || avatarPlaceholder(56, displayNameFor(profile))} alt="" className="w-14 h-14 object-cover rounded-full flex-shrink-0" />
               <div className="min-w-0">
                 <h2 className="text-xl font-serif italic mb-0.5 truncate">{displayNameFor(profile)}</h2>
-                {profile.display_name && <p className="text-text-muted font-sans text-xs truncate">{profile.email}</p>}
+                {isOwnProfile && <p className="text-text-muted font-sans text-xs truncate">{user.email}</p>}
               </div>
             </div>
             {profile.bio && !editingProfile && <p className="text-text-muted font-sans text-xs mb-3">{profile.bio}</p>}
@@ -1268,7 +1268,7 @@ function ProfilePage() {
             <div className="flex flex-col gap-1.5 mb-3">
               {followingProfiles.map((p) => (
                 <Link key={p.id} to={`/profile/${p.id}`} className="flex items-center gap-2 bg-surface border border-border rounded px-2.5 py-2 font-sans text-xs no-underline text-text hover:border-accent">
-                  <img src={p.avatar_url || avatarPlaceholder(24)} alt="" className="w-6 h-6 object-cover rounded-full flex-shrink-0" />
+                  <img src={p.avatar_url || avatarPlaceholder(24, displayNameFor(p))} alt="" className="w-6 h-6 object-cover rounded-full flex-shrink-0" />
                   <span className="truncate">{displayNameFor(p)}</span>
                 </Link>
               ))}
@@ -1284,7 +1284,7 @@ function ProfilePage() {
             <div className="flex flex-col gap-1.5">
               {followerProfiles.map((p) => (
                 <Link key={p.id} to={`/profile/${p.id}`} className="flex items-center gap-2 bg-surface border border-border rounded px-2.5 py-2 font-sans text-xs no-underline text-text hover:border-accent">
-                  <img src={p.avatar_url || avatarPlaceholder(24)} alt="" className="w-6 h-6 object-cover rounded-full flex-shrink-0" />
+                  <img src={p.avatar_url || avatarPlaceholder(24, displayNameFor(p))} alt="" className="w-6 h-6 object-cover rounded-full flex-shrink-0" />
                   <span className="truncate">{displayNameFor(p)}</span>
                 </Link>
               ))}

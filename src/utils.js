@@ -3,11 +3,23 @@ import { supabase } from './supabaseClient'
 // ---------- Identity & display ----------
 
 export function displayNameFor(profile) {
-  return profile?.display_name || profile?.email || 'Someone'
+  return profile?.display_name || 'Someone'
 }
 
-export function avatarPlaceholder(size = 40) {
-  return `https://placehold.co/${size}x${size}/1c1a15/a8a29a?text=%20`
+// Stand-in avatar for anyone without a photo: a dark disc carrying the
+// person's initials (or a plain disc when no name is given, e.g. for album
+// art fallbacks). Returned as an inline SVG so it needs no network request.
+export function avatarPlaceholder(size = 40, name = '') {
+  const words = String(name || '').trim().split(/\s+/).filter(Boolean)
+  const initials = (words.length > 1
+    ? words[0][0] + words[1][0]
+    : (words[0] || '').slice(0, 1)
+  ).toUpperCase()
+  const label = initials
+    ? `<text x="50" y="50" dy=".35em" text-anchor="middle" font-family="-apple-system,Segoe UI,Roboto,sans-serif" font-size="40" font-weight="600" fill="#FAFAF8">${initials.replace(/[<>&]/g, '')}</text>`
+    : ''
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 100 100"><rect width="100" height="100" fill="#1C1A15"/>${label}</svg>`
+  return `data:image/svg+xml,${encodeURIComponent(svg)}`
 }
 
 // ---------- Time ----------

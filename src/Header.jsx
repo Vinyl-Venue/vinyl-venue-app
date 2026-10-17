@@ -8,7 +8,7 @@ import CartLink from './CartLink'
 import TickerBar from './TickerBar'
 import SearchBox from './SearchBox'
 import MobileSearch from './MobileSearch'
-import { avatarPlaceholder } from './utils'
+import { avatarPlaceholder, displayNameFor } from './utils'
 
 // "Orders" now covers /orders, /purchases, and /trade-offers — all three
 // converge on TransactionsPage, which picks its default tab (Selling,
@@ -172,7 +172,7 @@ function Header() {
                 <NotificationBell />
 
                 <img
-                  src={ownProfile?.avatar_url || avatarPlaceholder(30)}
+                  src={ownProfile?.avatar_url || avatarPlaceholder(30, displayNameFor(ownProfile))}
                   alt=""
                   className="hidden lg:block w-[30px] h-[30px] object-cover rounded-full"
                 />

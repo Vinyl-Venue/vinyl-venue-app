@@ -222,7 +222,7 @@ function AlbumDetailContent({ album, isOwnAlbum = false }) {
     setCommentsLoading(true)
     const { data, error } = await supabase
       .from('comments')
-      .select('*, profiles!comments_user_id_fkey(email, display_name, avatar_url)')
+      .select('*, profiles!comments_user_id_fkey(display_name, avatar_url)')
       .eq('album_id', album.id)
       .order('created_at', { ascending: true })
 
@@ -245,7 +245,7 @@ function AlbumDetailContent({ album, isOwnAlbum = false }) {
     const { data, error } = await supabase
       .from('comments')
       .insert({ album_id: album.id, user_id: user.id, body: trimmed })
-      .select('*, profiles!comments_user_id_fkey(email, display_name, avatar_url)')
+      .select('*, profiles!comments_user_id_fkey(display_name, avatar_url)')
 
     if (error) {
       console.error('Error posting comment:', error.message)
@@ -728,7 +728,7 @@ function AlbumDetailContent({ album, isOwnAlbum = false }) {
                 <div className="flex items-center justify-between gap-2">
                   <span className="flex items-center gap-1.5">
                     <img src={comment.profiles?.avatar_url || PLACEHOLDER_AVATAR} alt="" className="w-5 h-5 object-cover rounded-full" />
-                    <strong className="text-text">{comment.profiles?.display_name || comment.profiles?.email || 'Someone'}</strong>
+                    <strong className="text-text">{comment.profiles?.display_name || 'Someone'}</strong>
                   </span>
                   {comment.user_id === user.id && (
                     <button onClick={() => handleDeleteComment(comment.id)} className="bg-transparent border-0 text-text-muted text-xs cursor-pointer hover:text-accent">

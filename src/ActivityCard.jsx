@@ -15,7 +15,7 @@ function ActivityCard({ group }) {
     <div className="flex-none w-[236px] box-border bg-surface border border-border rounded-lg p-3.5 flex flex-col gap-2.5">
       <div className="flex items-center gap-2 text-xs">
         <img
-          src={group.actor?.avatar_url || avatarPlaceholder(22)}
+          src={group.actor?.avatar_url || avatarPlaceholder(22, displayNameFor(group.actor))}
           alt=""
           className="w-[22px] h-[22px] rounded-full object-cover flex-shrink-0"
         />

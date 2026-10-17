@@ -100,7 +100,7 @@ function BandSection({ bandName }) {
               >
                 <span className="text-accent font-bold text-xs w-20 flex-shrink-0">{ROLES[i]}</span>
                 <img
-                  src={mate.profile?.avatar_url || avatarPlaceholder(56)}
+                  src={mate.profile?.avatar_url || avatarPlaceholder(56, displayNameFor(mate.profile))}
                   alt=""
                   className="w-8 h-8 object-cover rounded-full flex-shrink-0"
                 />

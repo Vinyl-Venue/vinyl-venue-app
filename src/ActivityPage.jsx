@@ -163,7 +163,7 @@ function ActivityRow({ group }) {
       <div className="min-w-0 flex-1">
         <p className="text-sm text-text m-0 leading-snug">
           <img
-            src={group.actor?.avatar_url || avatarPlaceholder(18)}
+            src={group.actor?.avatar_url || avatarPlaceholder(18, displayNameFor(group.actor))}
             alt=""
             className="w-[18px] h-[18px] rounded-full object-cover inline-block align-text-bottom mr-1.5"
           />

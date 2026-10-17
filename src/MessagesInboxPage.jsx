@@ -74,8 +74,7 @@ function MessagesInboxPage() {
       const profileById = new Map((profiles || []).map((p) => [p.id, p]))
       conversationList.forEach((c) => {
         const p = profileById.get(c.otherId)
-        c.email = p?.email || 'Unknown user'
-        c.displayName = p?.display_name || c.email
+        c.displayName = p?.display_name || 'Unknown user'
         c.avatarUrl = p?.avatar_url || ''
       })
     }

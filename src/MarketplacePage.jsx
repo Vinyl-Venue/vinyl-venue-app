@@ -206,7 +206,7 @@ function MarketplacePage() {
     const sellerIds = [...new Set(activeRows.map((row) => row.user_id))]
 
     const { data: profiles } = sellerIds.length > 0
-      ? await supabase.from('profiles').select('id, display_name, email').in('id', sellerIds)
+      ? await supabase.from('profiles').select('id, display_name').in('id', sellerIds)
       : { data: [] }
     const profileById = new Map((profiles || []).map((p) => [p.id, p]))
 
@@ -234,7 +234,7 @@ function MarketplacePage() {
         imageUrl: row.image_url,
         price: row.price,
         listingType: row.listing_type,
-        sellerName: sellerProfile?.display_name || sellerProfile?.email || 'Unknown seller',
+        sellerName: sellerProfile?.display_name || 'Unknown seller',
         sellerRating: avgRating
       }
     }))
@@ -504,7 +504,7 @@ function MarketplacePage() {
                 className="flex items-center gap-2.5 no-underline text-text hover:text-accent"
               >
                 <img
-                  src={topic.author?.avatar_url || avatarPlaceholder(28)}
+                  src={topic.author?.avatar_url || avatarPlaceholder(28, displayNameFor(topic.author))}
                   alt=""
                   className="w-7 h-7 object-cover rounded-full flex-shrink-0"
                 />

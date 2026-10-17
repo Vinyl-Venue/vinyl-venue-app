@@ -138,7 +138,7 @@ function MessageThreadPage() {
             alt=""
             className="w-10 h-10 object-cover rounded-full"
           />
-          <h2 className="text-2xl font-serif m-0">{otherProfile?.display_name || otherProfile?.email || 'Unknown user'}</h2>
+          <h2 className="text-2xl font-serif m-0">{otherProfile?.display_name || 'Unknown user'}</h2>
         </Link>
 
         {loading && <p className="font-sans text-sm text-text-muted">Loading...</p>}
