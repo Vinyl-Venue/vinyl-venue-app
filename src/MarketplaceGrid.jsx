@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import AuctionCountdown from './AuctionCountdown'
 import { WatchHeart, GradeTag } from './marketplace/AuctionSections'
 import TrustedBadge from './TrustedBadge'
@@ -11,32 +12,48 @@ const BADGE_COLORS = {
   auction: 'bg-[#c1666b]'
 }
 
-function MarketplaceGrid({ listings, onSelectListing, watch, dealFor }) {
-  if (listings.length === 0) {
-    return <p className="text-text-muted font-sans text-sm">No active listings yet.</p>
+const arrow = 'absolute top-1/2 -translate-y-1/2 z-20 w-7 h-7 rounded-full border-0 bg-black/60 text-white text-lg leading-none cursor-pointer hover:bg-accent flex items-center justify-center'
+
+// One album tile. With several pressings for sale, their covers peek out
+// behind the front card (like the Crates view) and the arrows flip through
+// them in place; clicking the cover opens the listing showing.
+function ListingTile({ group, onSelectListing, watch, dealFor }) {
+  const [idx, setIdx] = useState(0)
+  const n = group.items.length
+  const cur = idx % n
+  const listing = group.items[cur]
+  const extra = n - 1
+  const layers = Math.min(extra, 3)
+  const step = 9
+  const pad = layers * step
+  const opacities = [0.85, 0.65, 0.45]
+  const isAuction = listing.listingType === 'auction'
+  const displayPrice = isAuction && listing.currentBid != null ? listing.currentBid : listing.price
+  const priceLabel = isAuction ? (listing.currentBid != null ? 'Current bid' : 'Starting bid') : null
+  const deal = dealFor ? dealFor(listing) : null
+
+  function flip(delta, e) {
+    e.stopPropagation()
+    setIdx((i) => (i + delta + n) % n)
   }
 
   return (
-    // Was a hardcoded grid-cols-4 — the same fixed-column bug as every
-    // other grid in this pass, and the reason listing titles were
-    // wrapping 3-4 lines deep on a phone. Responsive column count,
-    // matching the auction grids on Marketplace/SellerMarketplace.
-    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 mt-4">
-      {groupByAlbum(listings).map((group) => {
-        const listing = group.items[0]
-        const extra = group.items.length - 1
-        const isAuction = listing.listingType === 'auction'
-        const displayPrice = isAuction && listing.currentBid != null ? listing.currentBid : listing.price
-        const priceLabel = isAuction ? (listing.currentBid != null ? 'Current bid' : 'Starting bid') : null
-        const deal = dealFor ? dealFor(listing) : null
-
-        return (
-          <div key={group.key} className="relative" style={extra > 0 ? { paddingRight: Math.min(extra, 2) * 7, paddingBottom: Math.min(extra, 2) * 7 } : undefined}>
-            {/* Other pressings of the same album, stacked behind the front copy. */}
-            {[2, 1].filter((k) => extra >= k).map((k) => {
-              const pad = Math.min(extra, 2) * 7
-              return <div key={k} aria-hidden className="absolute bg-surface border border-border rounded" style={{ top: k * 7, left: k * 7, right: pad - k * 7, bottom: pad - k * 7 }} />
-            })}
+    <div className="relative" style={extra > 0 ? { paddingTop: pad, paddingRight: pad } : undefined}>
+      {[3, 2, 1].filter((d) => layers >= d).map((d) => (
+        <div
+          key={d}
+          aria-hidden
+          className="absolute rounded border border-border bg-surface overflow-hidden"
+          style={{ left: d * step, bottom: d * step, top: pad - d * step, right: pad - d * step }}
+        >
+          <img
+            src={group.items[(cur + d) % n]?.imageUrl || "https://placehold.co/400x400/1c1a15/a8a29a?text=No+cover+yet"}
+            alt=""
+            className="w-full h-full object-cover"
+            style={{ opacity: opacities[d - 1] }}
+          />
+        </div>
+      ))}
           <div
             className="relative bg-surface border border-border rounded overflow-hidden cursor-pointer hover:border-accent transition-colors"
             onClick={() => onSelectListing(listing)}
@@ -49,7 +66,13 @@ function MarketplaceGrid({ listings, onSelectListing, watch, dealFor }) {
               />
               <WatchHeart listingId={listing.id} watch={watch} />
               {extra > 0 && (
-                <span className="absolute bottom-2 left-2 bg-text text-bg font-mono text-[10px] tracking-wider px-2 py-0.5">{group.items.length} PRESSINGS</span>
+                <span className="absolute bottom-2 left-2 bg-text text-bg font-mono text-[10px] tracking-wider px-2 py-0.5">{cur + 1} / {n} PRESSINGS</span>
+              )}
+              {extra > 0 && (
+                <>
+                  <button type="button" aria-label="Previous pressing" className={`${arrow} left-1.5`} onClick={(e) => flip(-1, e)}>&lsaquo;</button>
+                  <button type="button" aria-label="Next pressing" className={`${arrow} right-1.5`} onClick={(e) => flip(1, e)}>&rsaquo;</button>
+                </>
               )}
               <span className={`absolute top-2 right-2 font-sans text-[0.7rem] font-bold px-2 py-1 rounded text-bg uppercase tracking-wide ${BADGE_COLORS[listing.listingType]}`}>
                 {isAuction ? 'Live Auction' : listing.listingTypeLabel}
@@ -94,9 +117,20 @@ function MarketplaceGrid({ listings, onSelectListing, watch, dealFor }) {
               )}
             </div>
           </div>
-          </div>
-        )
-      })}
+    </div>
+  )
+}
+
+function MarketplaceGrid({ listings, onSelectListing, watch, dealFor }) {
+  if (listings.length === 0) {
+    return <p className="text-text-muted font-sans text-sm">No active listings yet.</p>
+  }
+
+  return (
+    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 mt-4">
+      {groupByAlbum(listings).map((group) => (
+        <ListingTile key={group.key} group={group} onSelectListing={onSelectListing} watch={watch} dealFor={dealFor} />
+      ))}
     </div>
   )
 }
