@@ -50,10 +50,10 @@ function MarketplaceSpineItem({ listing, ver, of, isHovered, onMouseEnter, onMou
         />
         <div className="absolute inset-0 bg-black/45" />
         <span
-          className="absolute bottom-2 left-1/2 whitespace-nowrap font-mono font-bold text-white"
+          className="absolute whitespace-nowrap font-mono font-bold text-white"
           style={{
             fontSize: computeSpineFontSize(listing.title),
-            top: '50%',
+            top: of > 1 ? 'calc(50% - 6px)' : '50%',
             left: '50%',
             transform: 'translate(-50%, -50%) rotate(-90deg)',
             transformOrigin: 'center'
