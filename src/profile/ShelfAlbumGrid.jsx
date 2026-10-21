@@ -6,8 +6,8 @@ import { fuzzyMatchKey } from '../utils'
 // the shelf toolbar above it, so this only draws what it is given.
 //
 // Several copies / pressings of the same album are stacked into one tile so
-// they take one cell instead of several. Clicking a stack fans it out in
-// place; clicking a fanned-out card opens that pressing.
+// they take one cell instead of several. The arrows flip through them in
+// place (same idea as the Crates view); clicking the cover opens the one showing.
 function groupAlbums(albums) {
   const groups = new Map()
   for (const album of albums) {
@@ -18,19 +18,54 @@ function groupAlbums(albums) {
   return [...groups.entries()].map(([key, items]) => ({ key, items }))
 }
 
-function ShelfAlbumGrid({ albums, isOwnProfile, onDelete, onEdit, onSelect }) {
-  const [open, setOpen] = useState(() => new Set())
+const pill = 'absolute left-2 top-10 z-10 bg-text text-bg font-mono text-[10px] tracking-wider px-2 py-0.5 pointer-events-none'
+const arrow = 'absolute top-1/2 -translate-y-1/2 z-20 w-7 h-7 rounded-full border-0 bg-black/60 text-white text-lg leading-none cursor-pointer hover:bg-accent flex items-center justify-center'
 
-  function toggle(key) {
-    setOpen((prev) => {
-      const next = new Set(prev)
-      if (next.has(key)) next.delete(key)
-      else next.add(key)
-      return next
-    })
+// One stacked tile: the other pressings' covers peek out behind the front
+// card toward the top-right, fading with depth, like the Crates view.
+function PressingStack({ items, renderCard }) {
+  const [idx, setIdx] = useState(0)
+  const n = items.length
+  const cur = idx % n
+  const layers = Math.min(n - 1, 3)
+  const step = 9
+  const pad = layers * step
+  const opacities = [0.85, 0.65, 0.45]
+
+  function flip(delta, e) {
+    e.stopPropagation()
+    setIdx((i) => (i + delta + n) % n)
   }
 
-  function card(album, i, extra) {
+  return (
+    <div className="relative" style={{ paddingTop: pad, paddingRight: pad }}>
+      {[3, 2, 1].filter((d) => layers >= d).map((d) => (
+        <div
+          key={d}
+          aria-hidden
+          className="absolute rounded border border-border bg-surface overflow-hidden"
+          style={{ left: d * step, bottom: d * step, top: pad - d * step, right: pad - d * step }}
+        >
+          <img
+            src={items[(cur + d) % n]?.imageUrl || 'https://placehold.co/400x400/1c1a15/a8a29a?text=No+cover+yet'}
+            alt=""
+            className="w-full h-full object-cover"
+            style={{ opacity: opacities[d - 1] }}
+          />
+        </div>
+      ))}
+      <div className="relative">
+        {renderCard(items[cur])}
+        <span className={pill}>{cur + 1} / {n} PRESSINGS</span>
+        <button type="button" aria-label="Previous pressing" className={`${arrow} left-1.5`} onClick={(e) => flip(-1, e)}>&lsaquo;</button>
+        <button type="button" aria-label="Next pressing" className={`${arrow} right-1.5`} onClick={(e) => flip(1, e)}>&rsaquo;</button>
+      </div>
+    </div>
+  )
+}
+
+function ShelfAlbumGrid({ albums, isOwnProfile, onDelete, onEdit, onSelect }) {
+  function card(album, i) {
     return (
       <RecordCard
         key={album?.id ?? i}
@@ -45,51 +80,18 @@ function ShelfAlbumGrid({ albums, isOwnProfile, onDelete, onEdit, onSelect }) {
         rarityBreakdown={album?.rarityBreakdown}
         onDelete={isOwnProfile ? () => onDelete(album.id) : undefined}
         onEdit={isOwnProfile ? (e) => { e.stopPropagation(); onEdit(album) } : undefined}
-        onClick={extra?.onClick || (() => onSelect(album))}
+        onClick={() => onSelect(album)}
       />
     )
   }
 
-  const pill = 'absolute left-2 top-10 z-10 bg-text text-bg font-mono text-[10px] tracking-wider px-2 py-0.5 border-0 cursor-pointer'
-
   return (
     <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-5">
-      {groupAlbums(albums).flatMap((group) => {
-        const n = group.items.length
-        if (n === 1) return [card(group.items[0], 0)]
-
-        if (open.has(group.key)) {
-          return group.items.map((album, i) => (
-            <div key={album?.id ?? `${group.key}-${i}`} className="relative">
-              {card(album, i)}
-              {i === 0 && (
-                <button type="button" className={pill} onClick={() => toggle(group.key)}>
-                  {n} PRESSINGS · COLLAPSE
-                </button>
-              )}
-            </div>
-          ))
-        }
-
-        const layers = Math.min(n - 1, 2)
-        const pad = layers * 7
-        return [
-          <div key={group.key} className="relative" style={{ paddingRight: pad, paddingBottom: pad }}>
-            {[2, 1].filter((k) => layers >= k).map((k) => (
-              <div
-                key={k}
-                aria-hidden
-                className="absolute bg-surface border border-border rounded"
-                style={{ top: k * 7, left: k * 7, right: pad - k * 7, bottom: pad - k * 7 }}
-              />
-            ))}
-            <div className="relative">
-              {card(group.items[0], 0, { onClick: () => toggle(group.key) })}
-              <span className={`${pill} pointer-events-none`}>{n} PRESSINGS</span>
-            </div>
-          </div>
-        ]
-      })}
+      {groupAlbums(albums).map((group) =>
+        group.items.length === 1
+          ? card(group.items[0], 0)
+          : <PressingStack key={group.key} items={group.items} renderCard={card} />
+      )}
     </div>
   )
 }
