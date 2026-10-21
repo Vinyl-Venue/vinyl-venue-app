@@ -368,9 +368,7 @@ function FavoritesSection({ userId, isOwnProfile, realAlbums, onOpenAlbum, compa
 
   return (
     <div className="mb-8 font-sans">
-      <div className="bg-text inline-block px-2.5 py-1 mb-1">
-        <span className="font-mono text-[10px] tracking-wider uppercase font-bold text-bg">Favorites</span>
-      </div>
+      <h2 className="m-0 font-serif italic font-normal text-[28px] leading-tight text-text mb-1">Favorites</h2>
       <p className="text-xs text-text-faint mb-3">
         Not the rarest or the most collected — just the ones that matter most.
       </p>

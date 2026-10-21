@@ -66,9 +66,7 @@ function MostWantedWidget({ title = 'Most Wanted', limit = 10, defaultMode = 'gl
     <div className="bg-surface border border-border rounded p-4 font-sans">
       <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
         <div>
-          <div className="bg-text inline-block px-2.5 py-1 mb-1">
-            <span className="font-mono text-[10px] tracking-wider uppercase font-bold text-bg">{title}</span>
-          </div>
+          <h2 className="m-0 font-serif italic font-normal text-[28px] leading-tight text-text mb-1">{title}</h2>
           <p className="text-xs text-text-muted m-0 mt-0.5">
             {mode === 'global'
               ? 'Weighted by wishlist rank across everyone on the platform.'

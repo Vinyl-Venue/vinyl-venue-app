@@ -16,6 +16,8 @@ const ResetPasswordPage = lazy(() => import('./ResetPasswordPage'))
 const MarketplacePage = lazy(() => import('./MarketplacePage'))
 const ProfilePage = lazy(() => import('./ProfilePage'))
 const DiscoverPage = lazy(() => import('./DiscoverPage'))
+const ProfileMetricsPage = lazy(() => import('./ProfileMetricsPage'))
+const ProfileNetworkPage = lazy(() => import('./ProfileNetworkPage'))
 const SellerMarketplacePage = lazy(() => import('./SellerMarketplacePage'))
 const MessagesInboxPage = lazy(() => import('./MessagesInboxPage'))
 const MessageThreadPage = lazy(() => import('./MessageThreadPage'))
@@ -210,6 +212,30 @@ function App() {
             element={
               <ProtectedRoute>
                 <SellerMarketplacePage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/profile/:userId/metrics"
+            element={
+              <ProtectedRoute>
+                <ProfileMetricsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/profile/:userId/followers"
+            element={
+              <ProtectedRoute>
+                <ProfileNetworkPage kind="followers" />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/profile/:userId/following"
+            element={
+              <ProtectedRoute>
+                <ProfileNetworkPage kind="following" />
               </ProtectedRoute>
             }
           />

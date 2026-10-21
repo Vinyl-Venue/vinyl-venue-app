@@ -102,11 +102,7 @@ function DigestPage() {
             <Section title="Worth a listen" items={digest.listen} render={(e) => <Item key={e.key} e={e} note={e.reason ? `“${e.reason}”` : ''} />} />
 
             <div className="bg-surface border border-border rounded-lg p-4 mt-2">
-              <div className="bg-text inline-block px-2.5 py-1 mb-3">
-                <span className="font-mono text-[10px] tracking-wider uppercase font-bold text-bg">
-                  The last {days} day{days === 1 ? '' : 's'}
-                </span>
-              </div>
+              <h2 className="m-0 font-serif italic font-normal text-[28px] leading-tight text-text mb-3">The last {days} day{days === 1 ? '' : 's'}</h2>
               <p className="text-sm m-0 text-text">
                 {digest.stats.collectors} collector{digest.stats.collectors === 1 ? '' : 's'} active &middot;{' '}
                 {digest.stats.added} new in shelves &middot; {digest.stats.listed} listed for sale
@@ -126,9 +122,7 @@ function Section({ title, items, render }) {
   if (!items || items.length === 0) return null
   return (
     <section className="mb-7">
-      <div className="bg-text inline-block px-2.5 py-1 mb-3">
-        <span className="font-mono text-[10px] tracking-wider uppercase font-bold text-bg">{title}</span>
-      </div>
+      <h2 className="m-0 font-serif italic font-normal text-[28px] leading-tight text-text mb-3">{title}</h2>
       <div className="flex flex-col gap-3">{items.map(render)}</div>
     </section>
   )

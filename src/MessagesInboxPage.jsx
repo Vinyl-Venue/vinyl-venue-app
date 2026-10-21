@@ -74,7 +74,8 @@ function MessagesInboxPage() {
       const profileById = new Map((profiles || []).map((p) => [p.id, p]))
       conversationList.forEach((c) => {
         const p = profileById.get(c.otherId)
-        c.displayName = p?.display_name || 'Unknown user'
+        c.email = p?.email || 'Unknown user'
+        c.displayName = p?.display_name || c.email
         c.avatarUrl = p?.avatar_url || ''
       })
     }
@@ -87,7 +88,7 @@ function MessagesInboxPage() {
     <>
       <Header />
       <section className="px-5 lg:px-10 py-5 lg:py-7 pb-24 lg:pb-10">
-        <h2 className="text-2xl font-serif mb-4">Messages</h2>
+        <h2 className="text-[34px] leading-tight font-serif italic font-normal mb-4">Messages</h2>
 
         {loading && <p className="font-sans text-sm text-text-muted">Loading...</p>}
 

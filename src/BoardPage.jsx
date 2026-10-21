@@ -115,7 +115,7 @@ function BoardPage() {
       <Header />
       <section className="px-10 pb-10">
         <div className="flex items-center justify-between mb-2">
-          <h2 className="text-2xl font-serif m-0">Marketplace board</h2>
+          <h2 className="text-[34px] leading-tight font-serif italic font-normal m-0">Marketplace board</h2>
           {!showNewTopic && (
             <button
               onClick={() => setShowNewTopic(true)}
@@ -181,7 +181,7 @@ function BoardPage() {
               className="flex items-center gap-3 bg-surface border border-border rounded px-4 py-3 no-underline text-text hover:border-accent"
             >
               <img
-                src={topic.author?.avatar_url || avatarPlaceholder(32, displayNameFor(topic.author))}
+                src={topic.author?.avatar_url || avatarPlaceholder(32)}
                 alt=""
                 className="w-9 h-9 object-cover rounded-full flex-shrink-0"
               />

@@ -4,9 +4,7 @@ import { compatibilityLabel } from './profileData'
 function ComparisonPanel({ comparisonLoading, comparison }) {
   return (
     <div className="border-t border-border pt-4 mb-4 font-sans">
-      <div className="bg-text inline-block px-2.5 py-1 mb-3">
-        <span className="font-mono text-[10px] tracking-wider uppercase font-bold text-bg">How your shelves compare</span>
-      </div>
+      <h2 className="m-0 font-serif italic font-normal text-[28px] leading-tight text-text mb-3">How your shelves compare</h2>
       {comparisonLoading && <p className="text-xs text-text-muted">Loading...</p>}
       {!comparisonLoading && comparison && (
         <>

@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import { pressingSummary, pressingParts, albumKey } from './marketplace/pressings'
 import AuctionCountdown from './AuctionCountdown'
 
 const PLACEHOLDER = "https://placehold.co/300x300/E4E2DC/E4E2DC"
@@ -24,7 +25,7 @@ function computeSpineFontSize(title) {
 // this page is already someone else's listing from the viewer's
 // perspective, even a seller's own), so the preview just shows price
 // and listing type rather than an action hint.
-function MarketplaceSpineItem({ listing, isHovered, onMouseEnter, onMouseLeave, onSelectListing }) {
+function MarketplaceSpineItem({ listing, ver, of, isHovered, onMouseEnter, onMouseLeave, onSelectListing }) {
   return (
     <div
       onMouseEnter={onMouseEnter}
@@ -70,6 +71,11 @@ function MarketplaceSpineItem({ listing, isHovered, onMouseEnter, onMouseLeave, 
             boxShadow: '0 0 0 1px rgba(255,255,255,0.6)'
           }}
         />
+        {of > 1 && (
+          <span className="absolute bottom-1 left-0 right-0 text-center font-mono font-bold text-white/90 leading-none" style={{ fontSize: 8 }}>
+            {ver}/{of}
+          </span>
+        )}
       </div>
 
       <div
@@ -94,6 +100,9 @@ function MarketplaceSpineItem({ listing, isHovered, onMouseEnter, onMouseLeave, 
         <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/75 to-transparent px-2 py-1.5">
           <p className="text-white text-[11px] font-bold m-0">{listing.title}</p>
           <p className="text-white/80 text-[10px] m-0">{listing.artist}</p>
+          {pressingParts(listing).length > 0 && (
+            <p className="text-white/70 text-[9px] m-0 leading-tight">{of > 1 ? `Pressing ${ver} of ${of} \u00b7 ` : ''}{pressingSummary(listing)}</p>
+          )}
           {listing.sellerReviewCount > 0 && (
             <p className="text-[10px] text-white/90 m-0">&#9733; {listing.sellerRating.toFixed(1)} <span className="opacity-70">({listing.sellerReviewCount})</span></p>
         )}
@@ -260,8 +269,15 @@ function MarketplaceWallView({ listings, onSelectListing }) {
       <div className="hidden [@media(hover:hover)_and_(pointer:fine)]:flex flex-col gap-y-5">
         {genreBuckets.map((bucket) => {
           const sortedByArtist = [...bucket.records].sort((a, b) =>
-            (a.artist || '').localeCompare(b.artist || '')
+            (a.artist || '').localeCompare(b.artist || '') ||
+            (a.title || '').localeCompare(b.title || '') ||
+            (Number(a.pressingYear || a.year) || 0) - (Number(b.pressingYear || b.year) || 0)
           )
+          // Different pressings of the same album sit side by side, each on
+          // its own spine, numbered so you can tell them apart.
+          const copiesOf = new Map()
+          for (const l of sortedByArtist) copiesOf.set(albumKey(l), (copiesOf.get(albumKey(l)) || 0) + 1)
+          const seen = new Map()
           const withArtistDividers = []
           let lastArtist = null
           for (const listing of sortedByArtist) {
@@ -269,7 +285,8 @@ function MarketplaceWallView({ listings, onSelectListing }) {
               lastArtist = listing.artist
               withArtistDividers.push({ type: 'artist-divider', artist: listing.artist, key: `artist-${bucket.genre}-${listing.artist}` })
             }
-            withArtistDividers.push({ type: 'record', key: listing.id, listing })
+            seen.set(albumKey(listing), (seen.get(albumKey(listing)) || 0) + 1)
+            withArtistDividers.push({ type: 'record', key: listing.id, listing, ver: seen.get(albumKey(listing)), of: copiesOf.get(albumKey(listing)) })
           }
 
           return (
@@ -303,6 +320,8 @@ function MarketplaceWallView({ listings, onSelectListing }) {
                   <MarketplaceSpineItem
                     key={item.key}
                     listing={item.listing}
+                    ver={item.ver}
+                    of={item.of}
                     isHovered={hoveredId === item.listing.id}
                     onMouseEnter={() => setHoveredId(item.listing.id)}
                     onMouseLeave={() => setHoveredId(null)}
@@ -319,11 +338,7 @@ function MarketplaceWallView({ listings, onSelectListing }) {
       <div className="[@media(hover:hover)_and_(pointer:fine)]:hidden grid grid-cols-2 gap-4">
         {genreBuckets.map((bucket) => (
           <div key={bucket.genre}>
-            <div className="bg-text inline-block px-2 py-0.5 mb-2">
-              <span className="font-mono text-[9px] tracking-wider uppercase font-bold text-bg">
-                {bucket.genre} · {bucket.records.length}
-              </span>
-            </div>
+            <h2 className="m-0 font-serif italic font-normal text-xl leading-tight text-text mb-2">{bucket.genre} · {bucket.records.length}</h2>
             <SwipeableListingStack listings={bucket.records} onSelectListing={onSelectListing} />
           </div>
         ))}

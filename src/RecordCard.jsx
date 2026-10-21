@@ -51,6 +51,7 @@ function RecordCard({ title, artist, year, genre, imageUrl, isInCollection, list
           {LISTING_BADGES[listing.listingType]?.label || 'Listed'}
         </span>
       ) : null}
+      {(onEdit || onDelete) && (
       <div className="absolute top-2 right-2 flex gap-1.5">
         <button
           onClick={onEdit}
@@ -65,6 +66,7 @@ function RecordCard({ title, artist, year, genre, imageUrl, isInCollection, list
           ×
         </button>
       </div>
+      )}
     </div>
   )
 }

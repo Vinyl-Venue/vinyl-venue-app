@@ -1,61 +1,53 @@
 import AlbumDetailContent from './AlbumDetailContent'
 
-// The Shelf's reserved right-hand detail column (Wall + Grid views only).
-// Unlike SidePanel, this is a normal in-layout element — position: sticky,
-// not fixed, no portal — so it scrolls with the page until it reaches the
-// top of the viewport, then holds there while the crate/grid scrolls past
-// underneath. It always occupies its column, whether or not an album is
-// selected, so nothing on the page shifts when you open or close one.
+// The Shelf's reserved right-hand detail column. A normal in-layout element
+// (position: sticky, no portal): it scrolls with the page until it reaches
+// the top of the viewport, then holds there while the shelf scrolls past
+// underneath, so the record you clicked stays in view.
 //
 // Only rendered at lg+ (hidden below that) — narrow screens use the
-// existing SidePanel overlay instead, wired up separately in ProfilePage.
+// SidePanel overlay instead, wired up in ProfilePage.
 //
-// When nothing has actually been clicked, this defaults to showing the
-// #1 album by rarity (or just the first album on the shelf, if rarity
-// hasn't been computed yet) rather than sitting blank — but it's shown
-// with a label instead of the close button, so it reads as "here's a
-// highlight" rather than "you clicked this and don't remember why."
-function ShelfDetailPanel({ album, albums = [], onClose, isOwnAlbum }) {
-  const isExplicitSelection = !!album
-
-  const rankedAlbums = albums.filter((a) => a.rarityRank).sort((a, b) => a.rarityRank - b.rarityRank)
-  const defaultAlbum = rankedAlbums[0] || albums[0] || null
-  const defaultIsRanked = rankedAlbums.length > 0
-
-  const displayAlbum = album || defaultAlbum
-
+// Nothing is shown until an album is picked: the empty state says so. Once
+// one is picked the panel shows the full record (AlbumDetailContent already
+// carries condition editing and the listing form for the owner) plus a
+// quick-action row: owner gets Edit and Move to crate, a visitor gets
+// Add to my Most wanted.
+function ShelfDetailPanel({ album, onClose, isOwnAlbum, onEdit, onMoveToCrate, onAddToMostWanted, addedToMostWanted }) {
   return (
     <div
-      className="hidden lg:block bg-surface border border-border rounded-lg sticky top-5 overflow-y-auto"
-      style={{ maxHeight: 'calc(100vh - 40px)' }}
+      className="hidden lg:block bg-surface border border-border sticky top-4 overflow-y-auto self-start"
+      style={{ maxHeight: 'calc(100vh - 32px)' }}
     >
-      {displayAlbum ? (
-        <div className="relative">
-          {isExplicitSelection ? (
-            <button
-              onClick={onClose}
-              className="absolute top-3 right-3 bg-bg border border-border rounded-full w-8 h-8 flex items-center justify-center text-text-muted text-lg cursor-pointer hover:border-accent hover:text-accent z-10"
-            >
-              ×
-            </button>
-          ) : (
-            <div className="bg-bg border-b border-border px-4 py-2 font-sans">
-              <p className="text-[10px] uppercase tracking-wider text-text-faint m-0">
-                {defaultIsRanked ? 'Your rarest record' : 'From your shelf'} — click any album to see it here instead
-              </p>
-            </div>
-          )}
-          <AlbumDetailContent key={displayAlbum.id} album={displayAlbum} onClose={onClose} isOwnAlbum={isOwnAlbum} />
-        </div>
+      <div className="flex items-center justify-between h-14 px-5 border-b border-border font-mono text-[10px] tracking-wider uppercase text-text-muted">
+        <span>Selected record</span>
+        {album && (
+          <button onClick={onClose} className="bg-transparent border-0 text-text-muted text-lg cursor-pointer hover:text-accent" aria-label="Clear selection">×</button>
+        )}
+      </div>
+
+      {album ? (
+        <>
+          <AlbumDetailContent key={album.id} album={album} onClose={onClose} isOwnAlbum={isOwnAlbum} />
+          <div className="border-t border-border p-5 flex flex-col gap-2 font-sans">
+            {isOwnAlbum ? (
+              <div className="flex gap-2">
+                <button onClick={() => onEdit(album)} className="flex-1 min-h-11 bg-surface text-text border border-border-strong text-sm cursor-pointer">Edit album</button>
+                <button onClick={() => onMoveToCrate(album)} className="flex-1 min-h-11 bg-surface text-text border border-border-strong text-sm cursor-pointer">Move to crate</button>
+              </div>
+            ) : (
+              <button
+                onClick={() => onAddToMostWanted(album)}
+                disabled={addedToMostWanted}
+                className="min-h-11 bg-text text-bg border-0 text-sm cursor-pointer disabled:opacity-50 disabled:cursor-default"
+              >
+                {addedToMostWanted ? 'Added to your Most wanted' : 'Add to my Most wanted'}
+              </button>
+            )}
+          </div>
+        </>
       ) : (
-        <div className="flex flex-col items-center justify-center text-center p-8" style={{ minHeight: 410 }}>
-          <svg width="40" height="40" viewBox="0 0 40 40" fill="none" className="mb-3.5 opacity-50 text-text-faint">
-            <circle cx="20" cy="20" r="17" stroke="currentColor" strokeWidth="1.5" />
-            <circle cx="20" cy="20" r="3" stroke="currentColor" strokeWidth="1.5" />
-          </svg>
-          <p className="font-serif italic text-base text-text-muted mb-1">Nothing here yet</p>
-          <p className="font-sans text-xs text-text-faint">Add your first album to get started</p>
-        </div>
+        <div className="px-5 py-16 text-center font-serif italic text-xl text-text-muted">Pick an album to see its details</div>
       )}
     </div>
   )

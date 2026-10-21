@@ -5,6 +5,8 @@ import ListingPhotoGallery from './ListingPhotoGallery'
 import TradeOfferModal from './TradeOfferModal'
 import AuctionCountdown from './AuctionCountdown'
 import ReportButton from './ReportButton'
+import PressingDetails from './marketplace/PressingDetails'
+import OtherPressings from './marketplace/OtherPressings'
 
 // Mirrors the database's min_bid_increment() so the form can show the real
 // minimum up front. The database remains the authority on what's accepted.
@@ -17,7 +19,7 @@ function minBidIncrement(current) {
   return 10
 }
 
-function ListingDetailContent({ listing, currentUserId, onMarkSold, onCancelListing, onBidPlaced, onListingUpdated }) {
+function ListingDetailContent({ listing, currentUserId, onMarkSold, onCancelListing, onBidPlaced, onListingUpdated, onClose, onSelectListing }) {
   const navigate = useNavigate()
   const [addingToCart, setAddingToCart] = useState(false)
   const [addedToCart, setAddedToCart] = useState(false)
@@ -55,10 +57,6 @@ function ListingDetailContent({ listing, currentUserId, onMarkSold, onCancelList
   // The end time can move after we load it (anti-sniping extends it when a
   // bid lands in the final 5 minutes), so track it separately from the prop.
   const [liveEndsAt, setLiveEndsAt] = useState(listing.endsAt)
-
-  const hasPressingDetails =
-    listing.label || listing.pressingCountry || listing.matrixNumber ||
-    listing.deadwax || listing.sleeveCondition || listing.mediaCondition
 
   const isOwner = currentUserId && listing.userId === currentUserId
   const isSold = listing.status === 'sold'
@@ -167,7 +165,7 @@ function ListingDetailContent({ listing, currentUserId, onMarkSold, onCancelList
     try {
       await onMarkSold(listing.id, parsedPrice)
       // On success, MarketplacePage removes this listing and closes the modal.
-    } catch {
+    } catch (err) {
       setErrorMsg('Something went wrong — try again.')
       setSubmitting(false)
     }
@@ -275,7 +273,7 @@ function ListingDetailContent({ listing, currentUserId, onMarkSold, onCancelList
       } else {
         await onCancelListing(listing.id)
       }
-    } catch {
+    } catch (err) {
       setErrorMsg('Something went wrong — try again.')
       setEndingAuction(false)
     }
@@ -324,16 +322,7 @@ function ListingDetailContent({ listing, currentUserId, onMarkSold, onCancelList
           </p>
         )}
 
-        {hasPressingDetails && (
-          <div className="mt-4 pt-4 border-t border-border font-sans text-sm text-text-muted">
-            {listing.sleeveCondition && <p className="my-1"><strong className="text-text">Sleeve condition:</strong> {listing.sleeveCondition}</p>}
-            {listing.mediaCondition && <p className="my-1"><strong className="text-text">Media condition:</strong> {listing.mediaCondition}</p>}
-            {listing.label && <p className="my-1"><strong className="text-text">Label:</strong> {listing.label}</p>}
-            {listing.pressingCountry && <p className="my-1"><strong className="text-text">Pressing country:</strong> {listing.pressingCountry}</p>}
-            {listing.matrixNumber && <p className="my-1"><strong className="text-text">Matrix number:</strong> {listing.matrixNumber}</p>}
-            {listing.deadwax && <p className="my-1"><strong className="text-text">Deadwax / runout:</strong> {listing.deadwax}</p>}
-          </div>
-        )}
+        <PressingDetails item={listing} notesLabel="Seller notes" />
 
         <ListingPhotoGallery listingId={listing.id} />
 
@@ -466,6 +455,8 @@ function ListingDetailContent({ listing, currentUserId, onMarkSold, onCancelList
             <ReportButton targetType="listing" targetId={listing.id} label="Report this listing" className="block mt-2" />
           </div>
         )}
+
+        {listing.status !== 'sold' && <OtherPressings listing={listing} onSelect={onSelectListing} />}
 
         {showTradeModal && (
           <TradeOfferModal

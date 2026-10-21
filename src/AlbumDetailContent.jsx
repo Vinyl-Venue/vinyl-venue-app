@@ -3,6 +3,8 @@ import { supabase } from './supabaseClient'
 import { useAuth } from './AuthContext'
 import { discogsSearch, discogsFetchRelease } from './utils'
 import ListingPhotoUploader from './ListingPhotoUploader'
+import PressingDetails from './marketplace/PressingDetails'
+import { pressingExtrasToRow } from './profile/profileData'
 
 const PLACEHOLDER_COVER = "https://placehold.co/500x500/E4E2DC/E4E2DC"
 const PLACEHOLDER_SMALL = "https://placehold.co/32x32/E4E2DC/E4E2DC"
@@ -12,7 +14,7 @@ const PLACEHOLDER_AVATAR = "https://placehold.co/24x24/E4E2DC/E4E2DC"
 // condition means the same thing wherever it's set in the app.
 const CONDITION_OPTIONS = ['', 'M', 'NM', 'VG+', 'VG', 'G+', 'G', 'P']
 
-function AlbumDetailContent({ album, isOwnAlbum = false }) {
+function AlbumDetailContent({ album, onClose, isOwnAlbum = false }) {
   const { user } = useAuth()
   const [existingListing, setExistingListing] = useState(null)
   const [checkingListing, setCheckingListing] = useState(true)
@@ -53,6 +55,7 @@ function AlbumDetailContent({ album, isOwnAlbum = false }) {
 
   const hasPressingDetails =
     album.label || album.pressingCountry || album.matrixNumber || album.deadwax ||
+    album.catalogNumber || album.format || album.vinylColor || album.edition || album.pressingYear || album.barcode || album.notes ||
     album.sleeveCondition || album.mediaCondition ||
     (album.specialTags && album.specialTags.length > 0)
 
@@ -222,7 +225,7 @@ function AlbumDetailContent({ album, isOwnAlbum = false }) {
     setCommentsLoading(true)
     const { data, error } = await supabase
       .from('comments')
-      .select('*, profiles!comments_user_id_fkey(display_name, avatar_url)')
+      .select('*, profiles!comments_user_id_fkey(email, display_name, avatar_url)')
       .eq('album_id', album.id)
       .order('created_at', { ascending: true })
 
@@ -245,7 +248,7 @@ function AlbumDetailContent({ album, isOwnAlbum = false }) {
     const { data, error } = await supabase
       .from('comments')
       .insert({ album_id: album.id, user_id: user.id, body: trimmed })
-      .select('*, profiles!comments_user_id_fkey(display_name, avatar_url)')
+      .select('*, profiles!comments_user_id_fkey(email, display_name, avatar_url)')
 
     if (error) {
       console.error('Error posting comment:', error.message)
@@ -335,7 +338,10 @@ function AlbumDetailContent({ album, isOwnAlbum = false }) {
       sleeve_condition: album.sleeveCondition,
       media_condition: album.mediaCondition,
       label: album.label,
-      pressing_country: album.pressingCountry
+      pressing_country: album.pressingCountry,
+      ...pressingExtrasToRow(album),
+      ...(album.matrixNumber ? { matrix_number: album.matrixNumber } : {}),
+      ...(album.deadwax ? { deadwax: album.deadwax } : {})
     }
 
     if (isAuction) {
@@ -512,15 +518,12 @@ function AlbumDetailContent({ album, isOwnAlbum = false }) {
           </div>
 
           {hasPressingDetails && (
-            <div className="mt-4 pt-4 border-t border-border font-sans text-sm text-text-muted">
-              {album.label && <p className="my-1"><strong className="text-text">Label:</strong> {album.label}</p>}
-              {album.pressingCountry && <p className="my-1"><strong className="text-text">Pressing country:</strong> {album.pressingCountry}</p>}
-              {album.matrixNumber && <p className="my-1"><strong className="text-text">Matrix number:</strong> {album.matrixNumber}</p>}
-              {album.deadwax && <p className="my-1"><strong className="text-text">Deadwax / runout:</strong> {album.deadwax}</p>}
+            <>
+              <PressingDetails item={album} showCondition={false} notesLabel="Notes" />
               {album.specialTags && album.specialTags.length > 0 && (
-                <p className="my-1"><strong className="text-text">Special:</strong> {album.specialTags.join(', ')}</p>
+                <p className="font-sans text-sm text-text-muted mt-3 mb-0"><strong className="text-text">Special:</strong> {album.specialTags.join(', ')}</p>
               )}
-            </div>
+            </>
           )}
         </div>
 
@@ -728,7 +731,7 @@ function AlbumDetailContent({ album, isOwnAlbum = false }) {
                 <div className="flex items-center justify-between gap-2">
                   <span className="flex items-center gap-1.5">
                     <img src={comment.profiles?.avatar_url || PLACEHOLDER_AVATAR} alt="" className="w-5 h-5 object-cover rounded-full" />
-                    <strong className="text-text">{comment.profiles?.display_name || 'Someone'}</strong>
+                    <strong className="text-text">{comment.profiles?.display_name || comment.profiles?.email || 'Someone'}</strong>
                   </span>
                   {comment.user_id === user.id && (
                     <button onClick={() => handleDeleteComment(comment.id)} className="bg-transparent border-0 text-text-muted text-xs cursor-pointer hover:text-accent">

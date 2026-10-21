@@ -31,7 +31,7 @@ function StarPicker({ value, onChange, disabled }) {
   )
 }
 
-function SaleRow({ listing, buyerName, cancellableOrderId, onCancelOrder }) {
+function SaleRow({ listing, buyerEmail, cancellableOrderId, onCancelOrder }) {
   const [cancelling, setCancelling] = useState(false)
   const [confirmingCancel, setConfirmingCancel] = useState(false)
 
@@ -52,7 +52,7 @@ function SaleRow({ listing, buyerName, cancellableOrderId, onCancelOrder }) {
         <div className="flex-1 min-w-0">
           <p className="m-0 text-sm text-text"><strong>{listing.title}</strong> — {listing.artist}</p>
           <p className="m-0 text-xs text-text-muted mt-0.5">
-            Sold{buyerName ? ` to ${buyerName}` : ''} for ${Number(listing.sold_price).toFixed(2)}
+            Sold{buyerEmail ? ` to ${buyerEmail}` : ''} for ${Number(listing.sold_price).toFixed(2)}
           </p>
         </div>
         {cancellableOrderId && !confirmingCancel && (
@@ -92,7 +92,7 @@ function SaleRow({ listing, buyerName, cancellableOrderId, onCancelOrder }) {
   )
 }
 
-function PurchaseRow({ listing, sellerName, alreadyReviewed, onSubmitReview, cancellableOrderId, onCancelOrder }) {
+function PurchaseRow({ listing, sellerEmail, alreadyReviewed, onSubmitReview, cancellableOrderId, onCancelOrder }) {
   const [rating, setRating] = useState(0)
   const [body, setBody] = useState('')
   const [submitting, setSubmitting] = useState(false)
@@ -129,10 +129,10 @@ function PurchaseRow({ listing, sellerName, alreadyReviewed, onSubmitReview, can
         <div className="flex-1 min-w-0">
           <p className="m-0 text-sm text-text"><strong>{listing.title}</strong> — {listing.artist}</p>
           {listing.source === 'trade' ? (
-            <p className="m-0 text-xs text-text-muted mt-0.5">Traded with {sellerName}</p>
+            <p className="m-0 text-xs text-text-muted mt-0.5">Traded with {sellerEmail}</p>
           ) : (
             <p className="m-0 text-xs text-text-muted mt-0.5">
-              Bought from {sellerName} for ${Number(listing.sold_price).toFixed(2)}
+              Bought from {sellerEmail} for ${Number(listing.sold_price).toFixed(2)}
             </p>
           )}
         </div>
@@ -215,14 +215,14 @@ function TransactionsPage() {
 
   // Selling
   const [sales, setSales] = useState([])
-  const [buyerNames, setBuyerNames] = useState({})
+  const [buyerEmails, setBuyerEmails] = useState({})
   const [sellingCancellableOrderIds, setSellingCancellableOrderIds] = useState({})
   const [sellingLoading, setSellingLoading] = useState(true)
 
   // Buying
   const [purchases, setPurchases] = useState([])
   const [reviewedListingIds, setReviewedListingIds] = useState(new Set())
-  const [sellerNames, setSellerNames] = useState({})
+  const [sellerEmails, setSellerEmails] = useState({})
   const [buyingCancellableOrderIds, setBuyingCancellableOrderIds] = useState({})
   const [buyingLoading, setBuyingLoading] = useState(true)
 
@@ -261,9 +261,9 @@ function TransactionsPage() {
     const buyerIds = [...new Set((listingsData || []).map((l) => l.buyer_id).filter(Boolean))]
     if (buyerIds.length > 0) {
       const { data: profiles } = await supabase.from('profiles').select('*').in('id', buyerIds)
-      const nameMap = {}
-      for (const p of profiles || []) nameMap[p.id] = p.display_name
-      setBuyerNames(nameMap)
+      const emailMap = {}
+      for (const p of profiles || []) emailMap[p.id] = p.email
+      setBuyerEmails(emailMap)
     }
 
     const listingIds = (listingsData || []).map((l) => l.id)
@@ -342,9 +342,9 @@ function TransactionsPage() {
     const sellerIds = [...new Set(combined.map((l) => l.user_id))]
     if (sellerIds.length > 0) {
       const { data: profiles } = await supabase.from('profiles').select('*').in('id', sellerIds)
-      const nameMap = {}
-      for (const p of profiles || []) nameMap[p.id] = p.display_name
-      setSellerNames(nameMap)
+      const emailMap = {}
+      for (const p of profiles || []) emailMap[p.id] = p.email
+      setSellerEmails(emailMap)
     }
 
     const { data: myReviews } = await supabase.from('reviews').select('listing_id').eq('reviewer_id', user.id)
@@ -490,7 +490,7 @@ function TransactionsPage() {
     <>
       <Header />
       <section className="px-5 lg:px-10 py-5 lg:py-7 pb-24 lg:pb-10 max-w-2xl">
-        <h2 className="text-2xl font-serif mb-4">Buy, sell & trade</h2>
+        <h2 className="text-[34px] leading-tight font-serif italic font-normal mb-4">Buy, sell & trade</h2>
 
         <div className="flex gap-2 mb-6 font-sans flex-wrap">
           <button
@@ -533,7 +533,7 @@ function TransactionsPage() {
                 <SaleRow
                   key={listing.id}
                   listing={listing}
-                  buyerName={listing.buyer_id ? (buyerNames[listing.buyer_id] || 'Unknown buyer') : null}
+                  buyerEmail={listing.buyer_id ? (buyerEmails[listing.buyer_id] || 'Unknown buyer') : null}
                   cancellableOrderId={sellingCancellableOrderIds[listing.id]}
                   onCancelOrder={handleCancelSaleOrder}
                 />
@@ -558,7 +558,7 @@ function TransactionsPage() {
                 <PurchaseRow
                   key={`${listing.source}-${listing.id}`}
                   listing={listing}
-                  sellerName={sellerNames[listing.user_id] || 'Unknown seller'}
+                  sellerEmail={sellerEmails[listing.user_id] || 'Unknown seller'}
                   alreadyReviewed={reviewedListingIds.has(listing.id)}
                   onSubmitReview={handleSubmitReview}
                   cancellableOrderId={buyingCancellableOrderIds[listing.id]}

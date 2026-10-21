@@ -58,11 +58,7 @@ function ActivityStrip({ className = '' }) {
         </Link>
       )}
       <div className="flex items-center justify-between gap-3 flex-wrap mb-3">
-        <div className="bg-text inline-block px-2.5 py-1">
-          <span className="font-mono text-[10px] tracking-wider uppercase font-bold text-bg">
-            Latest from your collectors
-          </span>
-        </div>
+        <h2 className="m-0 font-serif italic font-normal text-[28px] leading-tight text-text">Latest from your collectors</h2>
         {groups.length > 0 && (
           <Link to="/activity" className="text-[13px] font-medium text-accent no-underline hover:underline">
             See all activity →

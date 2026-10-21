@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import Header from './Header'
-import BandSection from './BandSection'
-import TryNewWidget from './TryNewWidget'
+import BandSection from './Bandsection'
+import TryNewWidget from './Trynewwidget'
 import { supabase } from './supabaseClient'
 import { useAuth } from './AuthContext'
 import { displayNameFor, avatarPlaceholder } from './utils'
@@ -87,7 +87,7 @@ function DiscoverPage() {
     const { data, error } = await supabase
       .from('profiles')
       .select('*')
-      .or(`display_name.ilike.%${searchText.trim().replace(/[%,()]/g, ' ')}%,band_name.ilike.%${searchText.trim().replace(/[%,()]/g, ' ')}%`)
+      .ilike('email', `%${searchText}%`)
       .neq('id', user.id)
       .limit(20)
 
@@ -133,13 +133,11 @@ function DiscoverPage() {
         </div>
 
         <div className="mb-10">
-          <div className="bg-text inline-block px-2.5 py-1 mb-3">
-            <span className="font-mono text-[10px] tracking-wider uppercase font-bold text-bg">Find collectors</span>
-          </div>
+          <h2 className="m-0 font-serif italic font-normal text-[28px] leading-tight text-text mb-3">Find collectors</h2>
           <form onSubmit={handleSearch} className="flex flex-col sm:flex-row gap-2.5 mb-4">
             <input
               type="text"
-              placeholder="Search by name or band to find people..."
+              placeholder="Search by email to find people..."
               value={searchText}
               onChange={(e) => setSearchText(e.target.value)}
               className="bg-surface border border-border text-text px-3 py-2 rounded font-sans text-sm w-full sm:w-72"
@@ -155,7 +153,7 @@ function DiscoverPage() {
                 return (
                   <div key={result.id} className="flex items-center gap-3 bg-surface border border-border rounded px-4 py-3 font-sans text-sm hover:border-accent min-w-0">
                     <Link to={`/profile/${result.id}`} className="flex items-center gap-3 flex-1 min-w-0 no-underline text-text">
-                      <img src={result.avatar_url || avatarPlaceholder(32, displayNameFor(result))} alt="" className="w-8 h-8 object-cover rounded-full flex-shrink-0" />
+                      <img src={result.avatar_url || avatarPlaceholder(32)} alt="" className="w-8 h-8 object-cover rounded-full flex-shrink-0" />
                       <span className="truncate">{displayNameFor(result)}</span>
                     </Link>
                     {alreadyFollowing ? (
@@ -180,13 +178,11 @@ function DiscoverPage() {
               ellipsize inside their row instead of overflowing it. */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 sm:gap-8">
             <div>
-              <div className="bg-text inline-block px-2.5 py-1 mb-3">
-                <span className="font-mono text-[10px] tracking-wider uppercase font-bold text-bg">Following ({followingProfiles.length})</span>
-              </div>
+              <h2 className="m-0 font-serif italic font-normal text-[28px] leading-tight text-text mb-3">Following ({followingProfiles.length})</h2>
               <div className="flex flex-col gap-2">
                 {followingProfiles.map((p) => (
                   <Link key={p.id} to={`/profile/${p.id}`} className="flex items-center gap-3 bg-surface border border-border rounded px-4 py-3 font-sans text-sm no-underline text-text hover:border-accent min-w-0">
-                    <img src={p.avatar_url || avatarPlaceholder(32, displayNameFor(p))} alt="" className="w-8 h-8 object-cover rounded-full flex-shrink-0" />
+                    <img src={p.avatar_url || avatarPlaceholder(32)} alt="" className="w-8 h-8 object-cover rounded-full flex-shrink-0" />
                     <span className="truncate">{displayNameFor(p)}</span>
                   </Link>
                 ))}
@@ -194,16 +190,14 @@ function DiscoverPage() {
               </div>
             </div>
             <div>
-              <div className="bg-text inline-block px-2.5 py-1 mb-3">
-                <span className="font-mono text-[10px] tracking-wider uppercase font-bold text-bg">Fans ({followerProfiles.length})</span>
-              </div>
+              <h2 className="m-0 font-serif italic font-normal text-[28px] leading-tight text-text mb-3">Fans ({followerProfiles.length})</h2>
               <div className="flex flex-col gap-2">
                 {followerProfiles.map((p) => {
                   const alreadyFollowing = followingIds.has(p.id)
                   return (
                     <div key={p.id} className="flex items-center gap-3 bg-surface border border-border rounded px-4 py-3 font-sans text-sm hover:border-accent min-w-0">
                       <Link to={`/profile/${p.id}`} className="flex items-center gap-3 flex-1 min-w-0 no-underline text-text">
-                        <img src={p.avatar_url || avatarPlaceholder(32, displayNameFor(p))} alt="" className="w-8 h-8 object-cover rounded-full flex-shrink-0" />
+                        <img src={p.avatar_url || avatarPlaceholder(32)} alt="" className="w-8 h-8 object-cover rounded-full flex-shrink-0" />
                         <span className="truncate">{displayNameFor(p)}</span>
                       </Link>
                       {!alreadyFollowing && (

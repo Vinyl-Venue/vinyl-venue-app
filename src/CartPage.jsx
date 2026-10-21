@@ -67,7 +67,7 @@ function CartPage() {
     <>
       <Header />
       <section className="px-10 pb-10 max-w-2xl">
-        <h2 className="text-2xl font-serif mb-4">Your cart</h2>
+        <h2 className="text-[34px] leading-tight font-serif italic font-normal mb-4">Your cart</h2>
 
         {cartItems.length === 0 ? (
           <p className="text-text-muted font-sans text-sm">

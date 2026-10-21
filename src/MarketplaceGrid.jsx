@@ -1,6 +1,8 @@
 import AuctionCountdown from './AuctionCountdown'
+import { WatchHeart, GradeTag } from './marketplace/AuctionSections'
 import TrustedBadge from './TrustedBadge'
 import { isTrustedSeller } from './sellerTrust'
+import { groupByAlbum, pressingSummary } from './marketplace/pressings'
 
 const BADGE_COLORS = {
   fixed: 'bg-accent',
@@ -9,7 +11,7 @@ const BADGE_COLORS = {
   auction: 'bg-[#c1666b]'
 }
 
-function MarketplaceGrid({ listings, onSelectListing }) {
+function MarketplaceGrid({ listings, onSelectListing, watch, dealFor }) {
   if (listings.length === 0) {
     return <p className="text-text-muted font-sans text-sm">No active listings yet.</p>
   }
@@ -20,15 +22,23 @@ function MarketplaceGrid({ listings, onSelectListing }) {
     // wrapping 3-4 lines deep on a phone. Responsive column count,
     // matching the auction grids on Marketplace/SellerMarketplace.
     <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 mt-4">
-      {listings.map((listing) => {
+      {groupByAlbum(listings).map((group) => {
+        const listing = group.items[0]
+        const extra = group.items.length - 1
         const isAuction = listing.listingType === 'auction'
         const displayPrice = isAuction && listing.currentBid != null ? listing.currentBid : listing.price
         const priceLabel = isAuction ? (listing.currentBid != null ? 'Current bid' : 'Starting bid') : null
+        const deal = dealFor ? dealFor(listing) : null
 
         return (
+          <div key={group.key} className="relative" style={extra > 0 ? { paddingRight: Math.min(extra, 2) * 7, paddingBottom: Math.min(extra, 2) * 7 } : undefined}>
+            {/* Other pressings of the same album, stacked behind the front copy. */}
+            {[2, 1].filter((k) => extra >= k).map((k) => {
+              const pad = Math.min(extra, 2) * 7
+              return <div key={k} aria-hidden className="absolute bg-surface border border-border rounded" style={{ top: k * 7, left: k * 7, right: pad - k * 7, bottom: pad - k * 7 }} />
+            })}
           <div
-            key={listing.id}
-            className="bg-surface border border-border rounded overflow-hidden cursor-pointer hover:border-accent transition-colors"
+            className="relative bg-surface border border-border rounded overflow-hidden cursor-pointer hover:border-accent transition-colors"
             onClick={() => onSelectListing(listing)}
           >
             <div className="relative">
@@ -37,6 +47,10 @@ function MarketplaceGrid({ listings, onSelectListing }) {
                 alt={listing.title}
                 className="w-full aspect-square object-cover"
               />
+              <WatchHeart listingId={listing.id} watch={watch} />
+              {extra > 0 && (
+                <span className="absolute bottom-2 left-2 bg-text text-bg font-mono text-[10px] tracking-wider px-2 py-0.5">{group.items.length} PRESSINGS</span>
+              )}
               <span className={`absolute top-2 right-2 font-sans text-[0.7rem] font-bold px-2 py-1 rounded text-bg uppercase tracking-wide ${BADGE_COLORS[listing.listingType]}`}>
                 {isAuction ? 'Live Auction' : listing.listingTypeLabel}
               </span>
@@ -44,6 +58,15 @@ function MarketplaceGrid({ listings, onSelectListing }) {
             <p className="m-0 text-sm px-2.5 pt-2.5 text-text truncate">{listing.title}</p>
             <div className="p-2.5 font-sans">
               <p className="text-text-muted text-sm m-0 mb-1 truncate">{listing.artist}</p>
+              {(extra > 0 || listing.catalogNumber || listing.pressingYear || listing.vinylColor) && (
+                <p className="text-text-faint text-[11px] m-0 mb-1 truncate">{extra > 0 ? `from $${Math.min(...group.items.map((l) => Number(l.listingType === 'auction' ? (l.currentBid ?? l.price) : l.price) || 0)).toFixed(2)} \u00b7 ` : ''}{pressingSummary(listing)}</p>
+              )}
+              {(listing.mediaCondition || listing.sleeveCondition || deal) && (
+                <p className="m-0 mb-1 flex items-center gap-1.5 flex-wrap">
+                  <GradeTag listing={listing} />
+                  {deal && <span className="text-[10px] border border-accent text-accent px-1.5 py-px whitespace-nowrap">{deal}% below avg</span>}
+                </p>
+              )}
               <p className="text-accent font-bold text-base m-0 mb-1">
                 ${Number(displayPrice).toFixed(2)}
                 {priceLabel && <span className="text-text-muted font-normal text-xs"> · {priceLabel}</span>}
@@ -70,6 +93,7 @@ function MarketplaceGrid({ listings, onSelectListing }) {
                 </p>
               )}
             </div>
+          </div>
           </div>
         )
       })}

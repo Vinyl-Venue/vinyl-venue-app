@@ -71,9 +71,7 @@ function BandSection({ bandName }) {
 
   return (
     <div className="bg-surface border border-border rounded p-4 font-sans">
-      <div className="bg-text inline-block px-2.5 py-1 mb-1">
-        <span className="font-mono text-[10px] tracking-wider uppercase font-bold text-bg">{bandName || 'The Band'}</span>
-      </div>
+      <h2 className="m-0 font-serif italic font-normal text-[28px] leading-tight text-text mb-1">{bandName || 'The Band'}</h2>
       <p className="text-xs text-text-muted m-0 mb-3">
         Your bandmates, matched by how closely your collections overlap.
       </p>
@@ -100,7 +98,7 @@ function BandSection({ bandName }) {
               >
                 <span className="text-accent font-bold text-xs w-20 flex-shrink-0">{ROLES[i]}</span>
                 <img
-                  src={mate.profile?.avatar_url || avatarPlaceholder(56, displayNameFor(mate.profile))}
+                  src={mate.profile?.avatar_url || avatarPlaceholder(56)}
                   alt=""
                   className="w-8 h-8 object-cover rounded-full flex-shrink-0"
                 />

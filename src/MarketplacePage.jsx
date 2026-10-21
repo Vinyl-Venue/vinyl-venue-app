@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import Header from './Header'
 import MarketplaceGrid from './MarketplaceGrid'
@@ -7,27 +7,18 @@ import MarketplaceCrateGridView from './MarketplaceCrateGridView'
 import ListingDetailContent from './ListingDetailContent'
 import MarketplaceDetailPanel from './MarketplaceDetailPanel'
 import SidePanel from './SidePanel'
-import MostWantedWidget from './MostWantedWidget'
-import AuctionCountdown from './AuctionCountdown'
+import MostWantedRail from './marketplace/MostWantedRail'
+import { LiveAuctions, UpcomingAuctions } from './marketplace/AuctionSections'
+import YourBidsStrip from './marketplace/YourBidsStrip'
+import FollowedRow from './marketplace/FollowedRow'
+import SuggestedRow from './marketplace/SuggestedRow'
+import { buildTaste, suggestListings } from './marketplace/suggestions'
+import { useWatchlist } from './marketplace/useWatchlist'
+import { loadPriceAverages, dealPercent } from './marketplace/priceStats'
 import { supabase } from './supabaseClient'
 import { useAuth } from './AuthContext'
-import { rowToListing, attachHighestBids, LISTING_TYPE_LABELS, timeAgo, displayNameFor, avatarPlaceholder } from './utils'
+import { rowToListing, attachHighestBids, LISTING_TYPE_LABELS, timeAgo, displayNameFor, avatarPlaceholder, fuzzyMatchKey } from './utils'
 import { SkeletonGrid } from './Skeleton'
-
-// Same convention as MarketplaceGrid.jsx's BADGE_COLORS and ShelfWallView's
-// LISTING_BADGES, so a listing reads consistently everywhere it appears.
-const FOLLOWED_BADGE_COLORS = {
-  fixed: 'bg-accent',
-  trade: 'bg-[#7c9885]',
-  fixed_or_trade: 'bg-[#b08d57]',
-  auction: 'bg-[#c1666b]'
-}
-const FOLLOWED_BADGE_LABELS = {
-  fixed: 'For sale',
-  trade: 'Trade only',
-  fixed_or_trade: 'Sale or trade',
-  auction: 'Auction'
-}
 
 function MarketplacePage() {
   const { user } = useAuth()
@@ -45,6 +36,24 @@ function MarketplacePage() {
   const [minPrice, setMinPrice] = useState('')
   const [maxPrice, setMaxPrice] = useState('')
   const listingsSectionRef = useRef(null)
+  const watch = useWatchlist(user?.id)
+  const [followedIds, setFollowedIds] = useState(new Set())
+  const [followedLoaded, setFollowedLoaded] = useState(false)
+  const [wishlistKeys, setWishlistKeys] = useState(new Set())
+  const [ownedKeys, setOwnedKeys] = useState(new Set())
+  const [taste, setTaste] = useState(null)
+  const [averages, setAverages] = useState(new Map())
+  const [quick, setQuick] = useState({ wishlist: false, following: false, trade: false, under25: false })
+  const [visibleCount, setVisibleCount] = useState(24)
+  const [boardOpen, setBoardOpen] = useState(() => {
+    // Open by default only on wide screens, where there's room for the board,
+    // the listings and the detail panel side by side.
+    const wide = typeof window !== 'undefined' && window.innerWidth >= 1500
+    try {
+      const saved = localStorage.getItem('vv-board-open')
+      return saved === null ? wide : saved === 'true'
+    } catch { return wide }
+  })
 
   function normalizeForMatch(str) {
     return (str || '').toLowerCase().replace(/[^a-z0-9]/g, '')
@@ -87,6 +96,8 @@ function MarketplacePage() {
     fetchListings()
     loadTopics()
     loadFollowedListings()
+    loadMyWishlistAndShelf()
+    loadPriceAverages().then(setAverages)
 
     const channel = supabase
       .channel('board-topics-sidebar')
@@ -174,6 +185,8 @@ function MarketplacePage() {
       .eq('follower_id', user.id)
 
     const followedIds = (followRows || []).map((row) => row.following_id)
+    setFollowedIds(new Set(followedIds))
+    setFollowedLoaded(true)
 
     if (followedIds.length === 0) {
       setFollowedListings([])
@@ -186,7 +199,7 @@ function MarketplacePage() {
       .in('user_id', followedIds)
       .eq('status', 'active')
       .order('created_at', { ascending: false })
-      .limit(15)
+      .limit(30)
 
     if (error) {
       console.error('Error loading followed-seller listings:', error.message)
@@ -201,12 +214,12 @@ function MarketplacePage() {
     const now = new Date()
     const activeRows = (listingRows || [])
       .filter((row) => row.listing_type !== 'auction' || !row.ends_at || new Date(row.ends_at) > now)
-      .slice(0, 5)
+      .slice(0, 12)
 
     const sellerIds = [...new Set(activeRows.map((row) => row.user_id))]
 
     const { data: profiles } = sellerIds.length > 0
-      ? await supabase.from('profiles').select('id, display_name').in('id', sellerIds)
+      ? await supabase.from('profiles').select('id, display_name, email').in('id', sellerIds)
       : { data: [] }
     const profileById = new Map((profiles || []).map((p) => [p.id, p]))
 
@@ -234,10 +247,23 @@ function MarketplacePage() {
         imageUrl: row.image_url,
         price: row.price,
         listingType: row.listing_type,
-        sellerName: sellerProfile?.display_name || 'Unknown seller',
+        sellerName: sellerProfile?.display_name || sellerProfile?.email || 'Unknown seller',
         sellerRating: avgRating
       }
     }))
+  }
+
+  // Your own Most wanted list and shelf, as match keys: the first drives the
+  // "Matches my Most wanted" filter, the second the "You own this" tags.
+  async function loadMyWishlistAndShelf() {
+    if (!user) return
+    const [wishRes, albumRes] = await Promise.all([
+      supabase.from('wishlist_items').select('title, artist').eq('user_id', user.id),
+      supabase.from('albums').select('title, artist, genre').eq('user_id', user.id)
+    ])
+    setWishlistKeys(new Set((wishRes.data || []).map(fuzzyMatchKey)))
+    setOwnedKeys(new Set((albumRes.data || []).map(fuzzyMatchKey)))
+    setTaste(buildTaste(albumRes.data, wishRes.data))
   }
 
   async function loadAuctionBidCounts(listingsArr) {
@@ -379,21 +405,28 @@ function MarketplacePage() {
     setSelectedListing(null)
   }
 
-  const activeAuctions = listings
-    .filter((l) => l.listingType === 'auction')
+  const nowMs = Date.now()
+  const upcomingAuctions = listings.filter(
+    (l) => l.listingType === 'auction' && l.startsAt && new Date(l.startsAt).getTime() > nowMs
+  )
+  const liveAuctions = listings
+    .filter((l) => l.listingType === 'auction' && !(l.startsAt && new Date(l.startsAt).getTime() > nowMs))
     .map((l) => ({ ...l, bidCount: auctionBidCounts[l.id] || 0 }))
-    .filter((l) => l.bidCount > 0)
-    .sort((a, b) => b.bidCount - a.bidCount)
-    .slice(0, 5)
 
-  const availableGenres = [...new Set(listings.map((listing) => listing.genre).filter(Boolean))].sort()
-  const availableConditions = [...new Set(listings.map((listing) => listing.mediaCondition).filter(Boolean))].sort()
+  // Auctions have their own sections above; "All listings" is everything
+  // else, unless you filter to auctions on purpose.
+  const browsableListings = listingTypeFilter === 'auction'
+    ? listings.filter((l) => l.listingType === 'auction')
+    : listings.filter((l) => l.listingType !== 'auction')
+
+  const availableGenres = [...new Set(browsableListings.map((listing) => listing.genre).filter(Boolean))].sort()
+  const availableConditions = [...new Set(browsableListings.map((listing) => listing.mediaCondition).filter(Boolean))].sort()
 
   const normalizedSearch = searchText.trim().toLowerCase()
   const parsedMin = minPrice === '' ? null : Number(minPrice)
   const parsedMax = maxPrice === '' ? null : Number(maxPrice)
 
-  let filteredListings = listings.filter((listing) => {
+  let filteredListings = browsableListings.filter((listing) => {
     if (normalizedSearch) {
       const matchesText =
         listing.title.toLowerCase().includes(normalizedSearch) ||
@@ -407,6 +440,11 @@ function MarketplacePage() {
     if (parsedMin !== null && Number(listing.price) < parsedMin) return false
     if (parsedMax !== null && Number(listing.price) > parsedMax) return false
 
+    if (quick.wishlist && !wishlistKeys.has(fuzzyMatchKey(listing))) return false
+    if (quick.following && !followedIds.has(listing.userId)) return false
+    if (quick.trade && listing.listingType !== 'trade' && listing.listingType !== 'fixed_or_trade') return false
+    if (quick.under25 && !(Number(listing.price) < 25)) return false
+
     return true
   })
 
@@ -414,10 +452,13 @@ function MarketplacePage() {
     filteredListings = [...filteredListings].sort((a, b) => Number(a.price) - Number(b.price))
   } else if (sortOption === 'price_desc') {
     filteredListings = [...filteredListings].sort((a, b) => Number(b.price) - Number(a.price))
+  } else if (sortOption === 'deal') {
+    filteredListings = [...filteredListings].sort((a, b) => (dealPercent(b, averages) || 0) - (dealPercent(a, averages) || 0))
   }
 
+  const quickActive = quick.wishlist || quick.following || quick.trade || quick.under25
   const filtersActive =
-    normalizedSearch || genreFilter || listingTypeFilter || conditionFilter || minPrice !== '' || maxPrice !== ''
+    normalizedSearch || genreFilter || listingTypeFilter || conditionFilter || minPrice !== '' || maxPrice !== '' || quickActive
 
   function clearFilters() {
     setSearchText('')
@@ -426,23 +467,42 @@ function MarketplacePage() {
     setConditionFilter('')
     setMinPrice('')
     setMaxPrice('')
+    setQuick({ wishlist: false, following: false, trade: false, under25: false })
   }
+
+  function toggleBoard() {
+    setBoardOpen((open) => {
+      try { localStorage.setItem('vv-board-open', String(!open)) } catch { /* private mode */ }
+      return !open
+    })
+  }
+
+  const shownListings = filteredListings.slice(0, visibleCount)
+  const dealFor = (listing) => dealPercent(listing, averages)
+  const suggested = useMemo(
+    () => suggestListings({ listings, taste, ownedKeys, followedIds, userId: user?.id }),
+    [listings, taste, ownedKeys, followedIds, user?.id]
+  )
 
   return (
     <>
       <Header />
 
-      {/* overflow-x-hidden as a safety net, same reasoning as ProfilePage —
+      {/* overflow-x-clip as a safety net, same reasoning as ProfilePage —
           the real fix is the responsive grid below, this just guards
           against any future stray fixed-width element. */}
-      <div className="flex flex-col lg:flex-row overflow-x-hidden">
+      <div className="flex flex-col lg:flex-row overflow-x-clip">
         {/* Board stays desktop-only for now — secondary content, not
             part of this pass. Worth a mobile treatment later if it turns
             out people want it on the go. */}
-        <aside className="w-80 flex-shrink-0 border-r border-border px-6 py-7 hidden lg:block">
+        <aside className="w-[280px] flex-shrink-0 border-r border-border px-5 py-7 hidden lg:block">
+         <div className="sticky top-5 flex flex-col gap-6 max-h-[calc(100vh-40px)] overflow-y-auto">
+          <MostWantedRail variant="column" userId={user?.id} ownedKeys={ownedKeys} listings={listings} onItemClick={handleMostWantedClick} />
+          <div>
           <div className="flex items-center justify-between mb-1">
             <p className="font-serif italic text-lg text-text m-0">Board</p>
-            {!showNewTopic && (
+            <button onClick={toggleBoard} className="text-xs text-text-muted bg-transparent border-0 cursor-pointer ml-auto mr-3">{boardOpen ? '\u2039 Collapse' : 'Expand \u203a'}</button>
+            {boardOpen && !showNewTopic && (
               <button
                 onClick={() => setShowNewTopic(true)}
                 className="text-[10px] uppercase tracking-wider text-accent bg-transparent border-0 cursor-pointer"
@@ -451,6 +511,7 @@ function MarketplacePage() {
               </button>
             )}
           </div>
+          {boardOpen && (<>
           <p className="font-sans text-[10px] uppercase tracking-wider text-text-faint mb-4">Open discussion</p>
 
           {showNewTopic && (
@@ -504,7 +565,7 @@ function MarketplacePage() {
                 className="flex items-center gap-2.5 no-underline text-text hover:text-accent"
               >
                 <img
-                  src={topic.author?.avatar_url || avatarPlaceholder(28, displayNameFor(topic.author))}
+                  src={topic.author?.avatar_url || avatarPlaceholder(28)}
                   alt=""
                   className="w-7 h-7 object-cover rounded-full flex-shrink-0"
                 />
@@ -523,108 +584,44 @@ function MarketplacePage() {
               View all topics →
             </Link>
           )}
+          </>)}
+          </div>
+         </div>
         </aside>
 
         {/* pb-24 clears the fixed mobile bottom tab bar in Header.jsx;
             lg:pb-7 restores the normal desktop bottom spacing. */}
-        <section className="flex-1 min-w-0 px-5 lg:px-10 py-5 lg:py-7 pb-24 lg:pb-7">
+        <section className="flex-1 min-w-0 px-5 lg:px-10 py-5 lg:py-7 pb-32 lg:pb-16">
           {/* Was a hardcoded inline style (`1fr 380px`) that never
               responded to viewport width at all — the real cause of the
               detail column crushing everything else on narrow screens.
               Now single-column below lg, same two-column layout at lg+. */}
-          <div className="grid gap-7 grid-cols-1 lg:grid-cols-[1fr_380px]">
+          <div className="grid gap-7 grid-cols-1 lg:grid-cols-[1fr_340px]">
             <div className="min-w-0">
-              <h2 className="text-2xl font-serif italic mb-4">Marketplace</h2>
+              <h2 className="text-[34px] leading-tight font-serif italic font-normal mb-4">Marketplace</h2>
 
-              {followedListings.length > 0 && (
-                <div className="mb-6">
-                  <div className="bg-text inline-block px-2.5 py-1 mb-2">
-                    <span className="font-mono text-[10px] tracking-wider uppercase font-bold text-bg">From people you follow</span>
-                  </div>
-                  <p className="font-sans text-[10px] uppercase tracking-wider text-text-faint mb-3">New listings from collectors you're following</p>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-                    {followedListings.map((item) => (
-                      <div
-                        key={item.id}
-                        onClick={() => {
-                          const full = listings.find((l) => l.id === item.id)
-                          if (full) setSelectedListing(full)
-                        }}
-                        className="bg-surface border border-border rounded overflow-hidden cursor-pointer hover:border-accent transition-colors"
-                      >
-                        <div className="relative">
-                          <img
-                            src={item.imageUrl || "https://placehold.co/200x200/E4E2DC/767467?text=%20"}
-                            alt={item.title}
-                            className="w-full aspect-square object-cover"
-                          />
-                          <span className={`absolute top-2 right-2 font-sans text-[0.6rem] font-bold px-2 py-1 rounded text-bg uppercase tracking-wide ${FOLLOWED_BADGE_COLORS[item.listingType] || 'bg-accent'}`}>
-                            {FOLLOWED_BADGE_LABELS[item.listingType] || 'Listed'}
-                          </span>
-                        </div>
-                        <div className="p-2 font-sans">
-                          <p className="m-0 text-xs font-bold truncate">{item.title}</p>
-                          <p className="m-0 text-[11px] text-text-muted truncate">{item.artist}</p>
-                          {item.price != null && item.listingType !== 'trade' && (
-                            <p className="m-0 text-xs text-accent font-mono mt-1">${Number(item.price).toFixed(2)}</p>
-                          )}
-                          <div className="flex items-center gap-1 mt-1.5 pt-1.5 border-t border-border">
-                            {item.sellerRating != null ? (
-                              <span className="text-[10px] text-accent flex-shrink-0">★ {item.sellerRating.toFixed(1)}</span>
-                            ) : (
-                              <span className="text-[10px] text-text-faint flex-shrink-0">No reviews</span>
-                            )}
-                            <span className="text-[10px] text-text-faint truncate">· {item.sellerName}</span>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {activeAuctions.length > 0 && (
-                <div className="mb-6">
-                  <div className="bg-text inline-block px-2.5 py-1 mb-2">
-                    <span className="font-mono text-[10px] tracking-wider uppercase font-bold text-bg">Active auctions</span>
-                  </div>
-                  <p className="font-sans text-[10px] uppercase tracking-wider text-text-faint mb-3">The premier auctions right now, by bid activity</p>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-                    {activeAuctions.map((listing) => (
-                      <div
-                        key={listing.id}
-                        onClick={() => setSelectedListing(listing)}
-                        className="bg-surface border border-border rounded overflow-hidden cursor-pointer hover:border-accent transition-colors"
-                      >
-                        <img
-                          src={listing.imageUrl || "https://placehold.co/200x200/E4E2DC/767467?text=%20"}
-                          alt={listing.title}
-                          className="w-full aspect-square object-cover"
-                        />
-                        <div className="p-2 font-sans">
-                          <p className="m-0 text-xs font-bold truncate">{listing.title}</p>
-                          <p className="m-0 text-[11px] text-text-muted truncate">{listing.artist}</p>
-                          <p className="m-0 text-xs text-accent font-mono mt-1">
-                            ${Number(listing.currentBid ?? listing.price).toFixed(2)} · {listing.bidCount} bid{listing.bidCount === 1 ? '' : 's'}
-                          </p>
-                          {listing.endsAt && <AuctionCountdown endsAt={listing.endsAt} />}
-                          <p className="text-text-faint text-[10px] m-0 mt-1">
-                            + {listing.shippingPrice != null ? `$${Number(listing.shippingPrice).toFixed(2)} shipping` : 'shipping: contact seller'}
-                          </p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              <div className="mb-6">
-                <MostWantedWidget title="Most Wanted" limit={15} defaultMode="global" allowToggle={false} layout="grid" onItemClick={handleMostWantedClick} />
+              <div className="flex flex-col gap-7 mb-7">
+                <YourBidsStrip userId={user?.id} listings={listings} watch={watch} onSelect={setSelectedListing} />
+                <LiveAuctions auctions={liveAuctions} onSelect={setSelectedListing} watch={watch} />
+                <UpcomingAuctions auctions={upcomingAuctions} onSelect={setSelectedListing} watch={watch} />
+                <MostWantedRail variant="row" userId={user?.id} ownedKeys={ownedKeys} listings={listings} onItemClick={handleMostWantedClick} />
+                <SuggestedRow items={suggested} onSelect={setSelectedListing} />
+                <FollowedRow
+                  items={followedListings}
+                  followsAnyone={followedIds.size > 0 || !followedLoaded}
+                  showingOnly={quick.following}
+                  onShowOnly={() => {
+                    setQuick((q) => ({ ...q, following: !q.following }))
+                    listingsSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+                  }}
+                  onSelect={(id) => {
+                    const full = listings.find((l) => l.id === id)
+                    if (full) setSelectedListing(full)
+                  }}
+                />
               </div>
 
-              <div className="bg-text inline-block px-2.5 py-1 mb-3">
-                <span className="font-mono text-[10px] tracking-wider uppercase font-bold text-bg">All listings</span>
-              </div>
+              <h2 className="m-0 font-serif italic font-normal text-[28px] leading-tight text-text mb-3">All listings</h2>
               <div ref={listingsSectionRef} className="flex flex-wrap items-center gap-2.5 mb-4 font-sans">
                 <input
                   type="text"
@@ -695,6 +692,7 @@ function MarketplacePage() {
                   <option value="newest">Newest first</option>
                   <option value="price_asc">Price: low to high</option>
                   <option value="price_desc">Price: high to low</option>
+                  {averages.size > 0 && <option value="deal">Best deal</option>}
                 </select>
 
                 {filtersActive && (
@@ -705,6 +703,28 @@ function MarketplacePage() {
                     Clear filters
                   </button>
                 )}
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2 mb-4 font-sans">
+                <span className="text-xs text-text-muted">Quick filters:</span>
+                {[
+                  { key: 'wishlist', label: 'Matches my Most wanted' },
+                  { key: 'following', label: 'From people I follow' },
+                  { key: 'trade', label: 'Trade only' },
+                  { key: 'under25', label: 'Under $25' }
+                ].map((chip) => (
+                  <button
+                    key={chip.key}
+                    onClick={() => setQuick((q) => ({ ...q, [chip.key]: !q[chip.key] }))}
+                    aria-pressed={quick[chip.key]}
+                    className={`font-mono text-[10px] tracking-wider uppercase px-3 py-1.5 rounded-full cursor-pointer border ${
+                      quick[chip.key] ? 'bg-accent text-bg border-accent' : 'bg-transparent text-text-muted border-border hover:border-accent'
+                    }`}
+                  >
+                    {chip.label}
+                  </button>
+                ))}
+                <span className="ml-auto text-xs text-text-muted">{filteredListings.length} listing{filteredListings.length === 1 ? '' : 's'}</span>
               </div>
 
               {/* Same three view options as the Shelf, for visual
@@ -748,17 +768,24 @@ function MarketplacePage() {
               ) : (
                 !loading && (
                   marketplaceView === 'wall' ? (
-                    <MarketplaceWallView listings={filteredListings} onSelectListing={setSelectedListing} />
+                    <MarketplaceWallView listings={shownListings} onSelectListing={setSelectedListing} />
                   ) : marketplaceView === 'crates' ? (
-                    <MarketplaceCrateGridView listings={filteredListings} onSelectListing={setSelectedListing} />
+                    <MarketplaceCrateGridView listings={shownListings} onSelectListing={setSelectedListing} />
                   ) : (
-                    <MarketplaceGrid listings={filteredListings} onSelectListing={setSelectedListing} />
+                    <MarketplaceGrid listings={shownListings} onSelectListing={setSelectedListing} watch={watch} dealFor={dealFor} />
                   )
                 )
+              )}
+              {!loading && filteredListings.length > visibleCount && (
+                <div className="flex items-center justify-center gap-3 mt-5 font-sans text-[13px] text-text-muted">
+                  Showing {shownListings.length} of {filteredListings.length}
+                  <button onClick={() => setVisibleCount((n) => n + 24)} className="text-accent bg-transparent border-0 cursor-pointer text-[13px]">Load more</button>
+                </div>
               )}
             </div>
 
             <MarketplaceDetailPanel
+              onSelectListing={setSelectedListing}
               listing={selectedListing}
               currentUserId={user?.id}
               onMarkSold={handleMarkSold}
@@ -774,6 +801,8 @@ function MarketplacePage() {
       {selectedListing && (
         <SidePanel onClose={() => setSelectedListing(null)} width={420} overlayOnly>
           <ListingDetailContent
+            key={selectedListing.id}
+            onSelectListing={setSelectedListing}
             listing={selectedListing}
             currentUserId={user?.id}
             onMarkSold={handleMarkSold}

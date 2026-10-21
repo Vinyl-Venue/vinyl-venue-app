@@ -87,9 +87,7 @@ function TryNewWidget() {
   if (!leastSimilar) {
     return (
       <div className="bg-surface border border-border rounded p-4 font-sans">
-        <div className="bg-text inline-block px-2.5 py-1 mb-2">
-          <span className="font-mono text-[10px] tracking-wider uppercase font-bold text-bg">Try something new</span>
-        </div>
+        <h2 className="m-0 font-serif italic font-normal text-[28px] leading-tight text-text mb-2">Try something new</h2>
         <p className="text-sm text-text-muted m-0">
           Follow a few more collectors to get discovery suggestions from tastes unlike yours.
         </p>
@@ -99,9 +97,7 @@ function TryNewWidget() {
 
   return (
     <div className="bg-surface border border-border rounded p-4 font-sans">
-      <div className="bg-text inline-block px-2.5 py-1 mb-2">
-        <span className="font-mono text-[10px] tracking-wider uppercase font-bold text-bg">Try something new</span>
-      </div>
+      <h2 className="m-0 font-serif italic font-normal text-[28px] leading-tight text-text mb-2">Try something new</h2>
       <p className="text-xs text-text-muted m-0 mb-3">
         Inspired by{' '}
         <Link to={`/profile/${leastSimilar.id}`} className="text-accent no-underline hover:underline">

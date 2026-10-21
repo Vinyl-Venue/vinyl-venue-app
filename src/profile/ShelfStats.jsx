@@ -4,9 +4,7 @@ import { getCollectionTier } from '../utils'
 function ShelfStats({ realAlbums, topArtist, topGenre, topDuplicate, userId, isOwnProfile }) {
   return (
     <div className="border-t border-border pt-4 mb-4 font-sans">
-      <div className="bg-text inline-block px-2.5 py-1 mb-2">
-        <span className="font-mono text-[10px] tracking-wider uppercase font-bold text-bg">By the numbers</span>
-      </div>
+      <h2 className="m-0 font-serif italic font-normal text-[28px] leading-tight text-text mb-2">By the numbers</h2>
       <div className="flex flex-col gap-1.5">
         <div className="bg-surface border border-border rounded px-3 py-2">
           <div className="flex items-baseline justify-between gap-2">

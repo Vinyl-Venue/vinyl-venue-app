@@ -76,9 +76,7 @@ function NowSpinningSection({ userId, isOwnProfile, realAlbums, albumId, updated
             className="w-12 h-12 object-cover rounded cursor-pointer flex-shrink-0"
           />
           <div className="min-w-0">
-            <div className="bg-text inline-block px-1.5 py-0.5 mb-1">
-              <span className="font-mono text-[8px] tracking-wider uppercase font-bold text-bg">Now Spinning</span>
-            </div>
+            <h2 className="m-0 font-serif italic font-normal text-xl leading-tight text-text mb-1">Now Spinning</h2>
             <p className="text-sm text-text font-bold m-0 truncate">{currentAlbum.title} — {currentAlbum.artist}</p>
             {updatedAt && <p className="text-[10px] text-text-faint font-mono m-0 mt-0.5">since {timeAgo(updatedAt)}</p>}
           </div>

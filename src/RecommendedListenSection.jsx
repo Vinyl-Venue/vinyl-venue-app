@@ -296,9 +296,7 @@ function RecommendedListenSection({ userId, isOwnProfile, realAlbums, onOpenAlbu
   return (
     <div className="mb-8 font-sans">
       <div className="flex items-center justify-between mb-1">
-        <div className="bg-text inline-block px-2.5 py-1">
-          <span className="font-mono text-[10px] tracking-wider uppercase font-bold text-bg">Recommended Listen</span>
-        </div>
+        <h2 className="m-0 font-serif italic font-normal text-[28px] leading-tight text-text">Recommended Listen</h2>
         {isOwnProfile && !adding && (
           <button
             onClick={openAddForm}

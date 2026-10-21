@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import AutocompleteInput from './AutocompleteInput'
 import SelectWithCustom from './SelectWithCustom'
 import SpecialTagsInput from './SpecialTagsInput'
+import { supabase } from './supabaseClient'
 import { discogsSearch, discogsFetchRelease } from './utils'
 
 const CONDITION_OPTIONS = [
@@ -66,6 +67,13 @@ function AddAlbumForm({
   const [pressingCountry, setPressingCountry] = useState('')
   const [matrixNumber, setMatrixNumber] = useState('')
   const [deadwax, setDeadwax] = useState('')
+  const [catalogNumber, setCatalogNumber] = useState('')
+  const [format, setFormat] = useState('')
+  const [vinylColor, setVinylColor] = useState('')
+  const [edition, setEdition] = useState('')
+  const [pressingYear, setPressingYear] = useState('')
+  const [barcode, setBarcode] = useState('')
+  const [notes, setNotes] = useState('')
   const [sleeveCondition, setSleeveCondition] = useState('')
   const [mediaCondition, setMediaCondition] = useState('')
   const [specialTags, setSpecialTags] = useState([])
@@ -92,6 +100,13 @@ function AddAlbumForm({
       setPressingCountry(editingAlbum.pressingCountry || '')
       setMatrixNumber(editingAlbum.matrixNumber || '')
       setDeadwax(editingAlbum.deadwax || '')
+      setCatalogNumber(editingAlbum.catalogNumber || '')
+      setFormat(editingAlbum.format || '')
+      setVinylColor(editingAlbum.vinylColor || '')
+      setEdition(editingAlbum.edition || '')
+      setPressingYear(editingAlbum.pressingYear ? String(editingAlbum.pressingYear) : '')
+      setBarcode(editingAlbum.barcode || '')
+      setNotes(editingAlbum.notes || '')
       setSleeveCondition(editingAlbum.sleeveCondition || '')
       setMediaCondition(editingAlbum.mediaCondition || '')
       setSpecialTags(editingAlbum.specialTags || [])
@@ -113,6 +128,13 @@ function AddAlbumForm({
     setPressingCountry('')
     setMatrixNumber('')
     setDeadwax('')
+    setCatalogNumber('')
+    setFormat('')
+    setVinylColor('')
+    setEdition('')
+    setPressingYear('')
+    setBarcode('')
+    setNotes('')
     setSleeveCondition('')
     setMediaCondition('')
     setSpecialTags([])
@@ -185,6 +207,13 @@ function AddAlbumForm({
     setLabel(release.label || label)
     setPressingCountry(release.pressingCountry || pressingCountry)
     if (release.matrixNumber) setMatrixNumber(release.matrixNumber)
+    // Pressing identification (only present once the lookup function is updated).
+    if (release.catalogNumber) setCatalogNumber(release.catalogNumber)
+    if (release.format) setFormat(release.format)
+    if (release.vinylColor) setVinylColor(release.vinylColor)
+    if (release.edition) setEdition(release.edition)
+    if (release.pressingYear) setPressingYear(String(release.pressingYear))
+    if (release.barcode) setBarcode(release.barcode)
 
     if (release.coverImageUrl && !imageFile) {
       setImagePreviewUrl(release.coverImageUrl)
@@ -224,6 +253,13 @@ function AddAlbumForm({
       pressingCountry: pressingCountry,
       matrixNumber: matrixNumber,
       deadwax: deadwax,
+      catalogNumber: catalogNumber,
+      format: format,
+      vinylColor: vinylColor,
+      edition: edition,
+      pressingYear: pressingYear,
+      barcode: barcode,
+      notes: notes,
       sleeveCondition: sleeveCondition,
       mediaCondition: mediaCondition,
       specialTags: specialTags
@@ -370,6 +406,20 @@ function AddAlbumForm({
           onChange={(event) => setDeadwax(event.target.value)}
           className={inputClass}
         />
+      </div>
+      <div className="flex gap-2.5 items-center mb-2.5 flex-wrap">
+        <input type="text" placeholder="Catalog number (e.g. MFSL 1-301)" value={catalogNumber} onChange={(event) => setCatalogNumber(event.target.value)} className={inputClass} />
+        <select value={format} onChange={(event) => setFormat(event.target.value)} className={selectClass}>
+          <option value="">Format</option>
+          {['LP, 12"', '2xLP', '3xLP+', 'EP, 12"', 'Single, 7"', 'Single, 12"', '10"', 'Box set', 'Picture disc', 'Other'].map((f) => <option key={f} value={f}>{f}</option>)}
+        </select>
+        <input type="text" placeholder="Vinyl color (e.g. Blue, Black)" value={vinylColor} onChange={(event) => setVinylColor(event.target.value)} className={inputClass} />
+        <input type="text" placeholder="Edition (e.g. First press, 180g, Limited)" value={edition} onChange={(event) => setEdition(event.target.value)} className={inputClass} />
+        <input type="number" placeholder="Pressing year" value={pressingYear} onChange={(event) => setPressingYear(event.target.value)} className={`${inputClass} w-32`} />
+        <input type="text" placeholder="Barcode" value={barcode} onChange={(event) => setBarcode(event.target.value)} className={inputClass} />
+      </div>
+      <div className="mb-2.5">
+        <textarea placeholder="Notes about this pressing (seller notes, flaws, what makes it identifiable)" value={notes} onChange={(event) => setNotes(event.target.value)} rows={2} className={`${inputClass} w-full resize-none`} />
       </div>
       <div className="flex gap-2.5 items-center mb-2.5 flex-wrap">
         <select

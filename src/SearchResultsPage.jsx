@@ -33,7 +33,7 @@ function SearchResultsPage() {
     }
   }, [query])
 
-  // Each word must match somewhere (title OR artist, or name OR band name),
+  // Each word must match somewhere (title OR artist, or name OR email),
   // so "miles kind" finds Kind of Blue by Miles Davis. Characters that
   // are special inside a PostgREST filter string (commas, parentheses,
   // quotes, % and _) are stripped first: a search like "Sgt. Pepper's
@@ -70,7 +70,7 @@ function SearchResultsPage() {
       matchAllTerms(
         supabase.from('profiles').select('*').neq('id', user.id).limit(20),
         terms,
-        ['display_name', 'band_name']
+        ['email', 'display_name']
       ),
       matchAllTerms(
         supabase
@@ -99,10 +99,10 @@ function SearchResultsPage() {
 
     const profileIds = [...new Set([...listingRows.map((r) => r.user_id), ...shelfRows.map((r) => r.user_id)])]
     const { data: ownerProfiles } = profileIds.length > 0
-      ? await supabase.from('profiles').select('id, display_name').in('id', profileIds)
+      ? await supabase.from('profiles').select('id, display_name, email').in('id', profileIds)
       : { data: [] }
     const ownerById = new Map((ownerProfiles || []).map((p) => [p.id, p]))
-    const nameFor = (id) => ownerById.get(id)?.display_name || 'Unknown'
+    const nameFor = (id) => ownerById.get(id)?.display_name || ownerById.get(id)?.email || 'Unknown'
 
     setPeople(peopleRes.data || [])
     setListings(listingRows.map((row) => ({
@@ -141,7 +141,7 @@ function SearchResultsPage() {
       {/* pb-24 clears the fixed mobile bottom tab bar; lg:pb-7 restores
           normal desktop spacing — same convention as every other page. */}
       <section className="px-5 lg:px-10 py-5 lg:py-7 pb-24 lg:pb-7 max-w-4xl">
-        <h2 className="text-2xl font-serif italic mb-1">Search</h2>
+        <h2 className="text-[34px] leading-tight font-serif italic font-normal mb-1">Search</h2>
         <p className="font-sans text-sm text-text-muted mb-6">
           {query ? <>Results for "<strong>{query}</strong>"</> : 'Enter a search term to find records, people and listings.'}
         </p>
@@ -172,9 +172,7 @@ function SearchResultsPage() {
 
         {!loading && show('listings') && listings.length > 0 && (
           <div className="mb-8">
-            <div className="bg-text inline-block px-2.5 py-1 mb-3">
-              <span className="font-mono text-[10px] tracking-wider uppercase font-bold text-bg">Listings</span>
-            </div>
+            <h2 className="m-0 font-serif italic font-normal text-[28px] leading-tight text-text mb-3">Listings</h2>
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
               {listings.map((item) => (
                 <Link
@@ -203,9 +201,7 @@ function SearchResultsPage() {
 
         {!loading && show('shelves') && shelfRecords.length > 0 && (
           <div className="mb-8">
-            <div className="bg-text inline-block px-2.5 py-1 mb-3">
-              <span className="font-mono text-[10px] tracking-wider uppercase font-bold text-bg">On shelves you can see</span>
-            </div>
+            <h2 className="m-0 font-serif italic font-normal text-[28px] leading-tight text-text mb-3">On shelves you can see</h2>
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
               {shelfRecords.map((item) => (
                 <Link
@@ -231,9 +227,7 @@ function SearchResultsPage() {
 
         {!loading && show('people') && people.length > 0 && (
           <div className="mb-8">
-            <div className="bg-text inline-block px-2.5 py-1 mb-3">
-              <span className="font-mono text-[10px] tracking-wider uppercase font-bold text-bg">People</span>
-            </div>
+            <h2 className="m-0 font-serif italic font-normal text-[28px] leading-tight text-text mb-3">People</h2>
             <div className="flex flex-col gap-2 max-w-xl">
               {people.map((person) => (
                 <Link
@@ -241,7 +235,7 @@ function SearchResultsPage() {
                   to={`/profile/${person.id}`}
                   className="flex items-center gap-3 bg-surface border border-border rounded px-4 py-3 font-sans text-sm no-underline text-text hover:border-accent min-w-0"
                 >
-                  <img src={person.avatar_url || avatarPlaceholder(32, displayNameFor(person))} alt="" className="w-8 h-8 object-cover rounded-full flex-shrink-0" />
+                  <img src={person.avatar_url || avatarPlaceholder(32)} alt="" className="w-8 h-8 object-cover rounded-full flex-shrink-0" />
                   <span className="truncate">{displayNameFor(person)}</span>
                 </Link>
               ))}

@@ -42,9 +42,7 @@ function ReviewsSection({ sellerId }) {
   if (reviews.length === 0) {
     return (
       <div className="mb-6 font-sans">
-        <div className="bg-text inline-block px-2.5 py-1 mb-2">
-          <span className="font-mono text-[10px] tracking-wider uppercase font-bold text-bg">Seller reviews</span>
-        </div>
+        <h2 className="m-0 font-serif italic font-normal text-[28px] leading-tight text-text mb-2">Seller reviews</h2>
         <p className="text-text-muted text-sm">No reviews yet.</p>
       </div>
     )
@@ -54,9 +52,7 @@ function ReviewsSection({ sellerId }) {
 
   return (
     <div className="mb-6 font-sans">
-      <div className="bg-text inline-block px-2.5 py-1 mb-2">
-        <span className="font-mono text-[10px] tracking-wider uppercase font-bold text-bg">Seller reviews</span>
-      </div>
+      <h2 className="m-0 font-serif italic font-normal text-[28px] leading-tight text-text mb-2">Seller reviews</h2>
       <div className="flex items-center gap-2 mb-3">
         <StarDisplay rating={averageRating} />
         <span className="text-text-muted text-sm">

@@ -2,7 +2,6 @@ import { useState, useRef, useEffect } from 'react'
 
 const PLACEHOLDER = "https://placehold.co/130x130/E4E2DC/E4E2DC"
 
-const ROW_OPACITY = [1, 0.88, 0.75]
 
 // Same convention as MarketplaceGrid.jsx's BADGE_COLORS, so a listed
 // album reads consistently whether you're seeing it on someone's shelf
@@ -303,30 +302,12 @@ function SwipeableCrateStack({ recordItems, onSelectAlbum, isOwnProfile }) {
 }
 
 function ShelfWallView({ albums, onSelectAlbum, isOwnProfile }) {
-  const [searchText, setSearchText] = useState('')
-  const [genreFilter, setGenreFilter] = useState('All')
   const [hoveredId, setHoveredId] = useState(null)
 
-  const rankedAlbums = albums
-    .filter((a) => a.rarityRank)
-    .sort((a, b) => a.rarityRank - b.rarityRank)
-
-  const top15 = rankedAlbums.slice(0, 15)
-  const topIds = new Set(top15.map((a) => a.id))
-  const rest = albums.filter((a) => !topIds.has(a.id))
-
-  const availableGenres = [...new Set(rest.map((a) => a.genre).filter(Boolean))].sort()
-
-  const normalizedSearch = searchText.trim().toLowerCase()
-  const filteredRest = rest.filter((a) => {
-    const matchesGenre = genreFilter === 'All' || a.genre === genreFilter
-    const matchesSearch = !normalizedSearch ||
-      a.title.toLowerCase().includes(normalizedSearch) ||
-      a.artist.toLowerCase().includes(normalizedSearch)
-    return matchesGenre && matchesSearch
-  })
-
-  const groupByGenre = genreFilter === 'All' && !normalizedSearch
+  // The page already shows the 15 rarest and owns search / genre filtering
+  // (ShelfToolbar), so this view only lays out what it is handed.
+  const filteredRest = albums
+  const groupByGenre = true
 
   // One bucket per genre for the mobile view — each becomes its own
   // independent swipeable crate (own index, own drag state) instead of
@@ -375,73 +356,7 @@ function ShelfWallView({ albums, onSelectAlbum, isOwnProfile }) {
 
   return (
     <div className="max-w-4xl">
-      {top15.length > 0 && (
-        <div className="mb-6">
-          <p className="font-sans text-[10px] uppercase tracking-wider text-text-faint mb-2">Top 15 by rarity</p>
-          <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 gap-2.5">
-            {top15.map((album, i) => (
-              <div
-                key={album.id}
-                onClick={() => onSelectAlbum(album)}
-                style={{ opacity: ROW_OPACITY[Math.floor(i / 5)] ?? 0.7 }}
-                className="aspect-square rounded-lg relative overflow-hidden cursor-pointer bg-surface border border-border hover:border-accent transition-colors"
-              >
-                <img
-                  src={album.imageUrl || PLACEHOLDER}
-                  alt={album.title}
-                  className="w-full h-full object-cover"
-                />
-                <span className="absolute top-1.5 left-1.5 bg-accent text-bg text-[9px] font-mono font-bold px-1.5 py-0.5 rounded">
-                  #{i + 1}
-                </span>
-                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/75 to-transparent px-2 py-1.5">
-                  <p className="text-white text-[11px] font-bold truncate m-0">{album.title}</p>
-                  <p className="text-white/80 text-[10px] truncate m-0">{album.artist}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      <div className={top15.length > 0 ? 'pt-5 border-t border-border' : ''}>
-        <p className="font-serif italic text-base text-text mb-0.5">
-          {top15.length > 0 ? 'The rest of the shelf' : 'Your shelf'}
-        </p>
-        <p className="font-sans text-[11px] text-text-muted mb-3">
-          {filteredRest.length} album{filteredRest.length === 1 ? '' : 's'}
-          {groupByGenre ? ' · grouped by genre, like a real crate' : ' matching'}
-        </p>
-
-        <div className="flex flex-wrap items-center gap-2 mb-3">
-          <input
-            type="text"
-            placeholder="Search by title or artist..."
-            value={searchText}
-            onChange={(e) => setSearchText(e.target.value)}
-            className="bg-surface border border-border text-text px-3 py-1.5 rounded text-sm w-full sm:w-64 font-sans"
-          />
-          <button
-            onClick={() => setGenreFilter('All')}
-            className={`text-xs px-3 py-1.5 rounded-full border cursor-pointer font-sans ${
-              genreFilter === 'All' ? 'bg-accent text-bg border-accent' : 'bg-surface border-border text-text-muted'
-            }`}
-          >
-            All
-          </button>
-          {availableGenres.map((genre) => (
-            <button
-              key={genre}
-              onClick={() => setGenreFilter(genre)}
-              className={`text-xs px-3 py-1.5 rounded-full border cursor-pointer font-sans ${
-                genreFilter === genre ? 'bg-accent text-bg border-accent' : 'bg-surface border-border text-text-muted'
-              }`}
-            >
-              {genre}
-            </button>
-          ))}
-        </div>
-
+      <div>
         {filteredRest.length === 0 ? (
           <p className="font-sans text-sm text-text-muted py-5">No matches — try a different search or genre.</p>
         ) : (

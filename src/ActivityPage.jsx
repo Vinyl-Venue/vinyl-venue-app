@@ -106,11 +106,7 @@ function ActivityPage() {
           <div className="flex-1 min-w-0 w-full">
             {sections.map((section) => (
               <section key={section.label} className="mb-7">
-                <div className="bg-text inline-block px-2.5 py-1 mb-3">
-                  <span className="font-mono text-[10px] tracking-wider uppercase font-bold text-bg">
-                    {section.label}
-                  </span>
-                </div>
+                <h2 className="m-0 font-serif italic font-normal text-[28px] leading-tight text-text mb-3">{section.label}</h2>
                 <div className="flex flex-col gap-3">
                   {section.groups.map((group) => (
                     <ActivityRow key={group.key} group={group} />
@@ -131,9 +127,7 @@ function ActivityPage() {
 
           {endingSoon.length > 0 && (
             <aside className="w-full lg:w-[260px] flex-none">
-              <div className="bg-text inline-block px-2.5 py-1 mb-3">
-                <span className="font-mono text-[10px] tracking-wider uppercase font-bold text-bg">Ending soon</span>
-              </div>
+              <h2 className="m-0 font-serif italic font-normal text-[28px] leading-tight text-text mb-3">Ending soon</h2>
               <div className="flex flex-col gap-3">
                 {endingSoon.map((group) => (
                   <ActivityCard key={group.key} group={group} />
@@ -163,7 +157,7 @@ function ActivityRow({ group }) {
       <div className="min-w-0 flex-1">
         <p className="text-sm text-text m-0 leading-snug">
           <img
-            src={group.actor?.avatar_url || avatarPlaceholder(18, displayNameFor(group.actor))}
+            src={group.actor?.avatar_url || avatarPlaceholder(18)}
             alt=""
             className="w-[18px] h-[18px] rounded-full object-cover inline-block align-text-bottom mr-1.5"
           />

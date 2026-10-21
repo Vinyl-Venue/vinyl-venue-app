@@ -8,14 +8,28 @@ import ListingDetailContent from './ListingDetailContent'
 //
 // Only rendered at lg+ — narrow screens use the existing ListingModal
 // overlay instead, wired up separately in MarketplacePage.
-function MarketplaceDetailPanel({ listing, currentUserId, onMarkSold, onCancelListing, onBidPlaced, onListingUpdated, onClose }) {
+function MarketplaceDetailPanel({ listing, currentUserId, onMarkSold, onCancelListing, onBidPlaced, onListingUpdated, onClose, emptyState, onSelectListing }) {
+  if (!listing && emptyState) {
+    return <div className="hidden lg:block sticky top-5 self-start overflow-y-auto" style={{ maxHeight: 'calc(100vh - 40px)' }}>{emptyState}</div>
+  }
+
   return (
     <div
-      className="hidden lg:block bg-surface border border-border rounded-lg sticky top-5 overflow-y-auto"
+      className="hidden lg:block bg-surface border border-border rounded-lg sticky top-5 self-start overflow-y-auto"
       style={{ maxHeight: 'calc(100vh - 40px)' }}
     >
       {listing ? (
         <div className="relative">
+          {emptyState && (
+            <div className="px-5 pt-4 pr-14">
+              <button
+                onClick={onClose}
+                className="bg-transparent border-0 p-0 cursor-pointer font-mono text-[10px] tracking-wider uppercase text-text-muted hover:text-accent"
+              >
+                &lsaquo; Back to Most wanted
+              </button>
+            </div>
+          )}
           <button
             onClick={onClose}
             className="absolute top-3 right-3 bg-bg border border-border rounded-full w-8 h-8 flex items-center justify-center text-text-muted text-lg cursor-pointer hover:border-accent hover:text-accent z-10"
@@ -23,6 +37,8 @@ function MarketplaceDetailPanel({ listing, currentUserId, onMarkSold, onCancelLi
             ×
           </button>
           <ListingDetailContent
+            key={listing.id}
+            onSelectListing={onSelectListing}
             listing={listing}
             currentUserId={currentUserId}
             onMarkSold={onMarkSold}

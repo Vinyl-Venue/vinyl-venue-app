@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useParams, useSearchParams, Link } from 'react-router-dom'
 import Header from './Header'
 import MarketplaceGrid from './MarketplaceGrid'
@@ -7,10 +7,14 @@ import MarketplaceCrateGridView from './MarketplaceCrateGridView'
 import MarketplaceDetailPanel from './MarketplaceDetailPanel'
 import SidePanel from './SidePanel'
 import ListingDetailContent from './ListingDetailContent'
-import AuctionCountdown from './AuctionCountdown'
 import { supabase } from './supabaseClient'
 import { useAuth } from './AuthContext'
-import { rowToListing, attachHighestBids, LISTING_TYPE_LABELS } from './utils'
+import { LiveAuctions, UpcomingAuctions } from './marketplace/AuctionSections'
+import { useWatchlist } from './marketplace/useWatchlist'
+import { loadPriceAverages, dealPercent } from './marketplace/priceStats'
+import SuggestedRow from './marketplace/SuggestedRow'
+import { buildTaste, suggestListings } from './marketplace/suggestions'
+import { rowToListing, attachHighestBids, LISTING_TYPE_LABELS, fuzzyMatchKey } from './utils'
 
 function StarDisplay({ rating }) {
   return (
@@ -18,72 +22,6 @@ function StarDisplay({ rating }) {
       {'★'.repeat(Math.round(rating))}
       <span className="text-border">{'★'.repeat(5 - Math.round(rating))}</span>
     </span>
-  )
-}
-
-function startsInLabel(startsAt) {
-  const diffMs = new Date(startsAt).getTime() - Date.now()
-  if (diffMs <= 0) return 'Starting soon'
-  const hours = Math.floor(diffMs / (1000 * 60 * 60))
-  if (hours < 1) return 'Starts in less than an hour'
-  if (hours < 24) return `Starts in ${hours}h`
-  const days = Math.floor(hours / 24)
-  return `Starts in ${days}d`
-}
-
-function UpcomingAuctionCard({ listing }) {
-  return (
-    <div className="bg-surface border border-border rounded overflow-hidden">
-      <div className="relative">
-        <img
-          src={listing.imageUrl || "https://placehold.co/400x400/1c1a15/a8a29a?text=No+cover+yet"}
-          alt={listing.title}
-          className="w-full aspect-square object-cover opacity-80"
-        />
-        <span className="absolute top-2 right-2 font-sans text-[0.7rem] font-bold px-2 py-1 rounded text-bg uppercase tracking-wide bg-[#c1666b]">
-          Auction
-        </span>
-      </div>
-      <p className="m-0 text-sm px-2.5 pt-2.5 text-text">{listing.title}</p>
-      <div className="p-2.5 font-sans">
-        <p className="text-text-muted text-sm m-0 mb-1">{listing.artist}</p>
-        <p className="text-accent font-bold text-base m-0 mb-1">
-          ${Number(listing.price).toFixed(2)}
-          <span className="text-text-muted font-normal text-xs"> · Starting bid</span>
-        </p>
-        <p className="text-text-muted text-xs m-0 mb-1">{startsInLabel(listing.startsAt)}</p>
-        <p className="text-text-faint text-xs m-0">
-          + {listing.shippingPrice != null ? `$${Number(listing.shippingPrice).toFixed(2)} shipping` : 'shipping: contact seller'}
-        </p>
-      </div>
-    </div>
-  )
-}
-
-function ActiveAuctionCard({ listing, onSelect }) {
-  return (
-    <div
-      onClick={onSelect}
-      className="bg-surface border border-border rounded overflow-hidden cursor-pointer hover:border-accent transition-colors"
-    >
-      <img
-        src={listing.imageUrl || "https://placehold.co/400x400/1c1a15/a8a29a?text=No+cover+yet"}
-        alt={listing.title}
-        className="w-full aspect-square object-cover"
-      />
-      <div className="p-2.5 font-sans">
-        <p className="m-0 text-sm font-bold truncate text-text">{listing.title}</p>
-        <p className="m-0 text-xs text-text-muted truncate mb-1">{listing.artist}</p>
-        <p className="m-0 text-sm text-accent font-bold">
-          ${Number(listing.currentBid ?? listing.price).toFixed(2)}
-          <span className="text-text-muted font-normal text-xs"> · {listing.bidCount} bid{listing.bidCount === 1 ? '' : 's'}</span>
-        </p>
-        {listing.endsAt && <AuctionCountdown endsAt={listing.endsAt} />}
-        <p className="text-text-faint text-xs m-0 mt-1">
-          + {listing.shippingPrice != null ? `$${Number(listing.shippingPrice).toFixed(2)} shipping` : 'shipping: contact seller'}
-        </p>
-      </div>
-    </div>
   )
 }
 
@@ -113,6 +51,38 @@ function SellerMarketplacePage() {
   const [sortOption, setSortOption] = useState('newest')
   const [sellerMarketplaceView, setSellerMarketplaceView] = useState('grid')
   const [auctionSearch, setAuctionSearch] = useState('')
+  const watch = useWatchlist(user?.id)
+  const [averages, setAverages] = useState(new Map())
+  useEffect(() => { loadPriceAverages().then(setAverages) }, [])
+  const dealFor = (listing) => dealPercent(listing, averages)
+
+  // "Picked for your shelf": the viewer's taste matched against only this
+  // seller's active listings (the listings state is already scoped to them).
+  const [taste, setTaste] = useState(null)
+  const [ownedKeys, setOwnedKeys] = useState(new Set())
+  useEffect(() => {
+    if (!user) return
+    let cancelled = false
+    Promise.all([
+      supabase.from('wishlist_items').select('title, artist').eq('user_id', user.id),
+      supabase.from('albums').select('title, artist, genre').eq('user_id', user.id)
+    ]).then(([wishRes, albumRes]) => {
+      if (cancelled) return
+      setOwnedKeys(new Set((albumRes.data || []).map(fuzzyMatchKey)))
+      setTaste(buildTaste(albumRes.data, wishRes.data))
+    })
+    return () => { cancelled = true }
+  }, [user])
+  const suggested = useMemo(
+    () => (isOwnMarketplace ? [] : suggestListings({
+      listings: listings.filter((l) => l.userId === userId),
+      taste,
+      ownedKeys,
+      followedIds: null,
+      userId: user?.id
+    })),
+    [listings, taste, ownedKeys, isOwnMarketplace, userId, user?.id]
+  )
 
   useEffect(() => {
     loadSellerMarketplace()
@@ -378,15 +348,15 @@ function SellerMarketplacePage() {
 
       {/* pb-24 clears the fixed mobile bottom tab bar in Header.jsx;
           lg:pb-7 restores the normal desktop bottom spacing. */}
-      <section className="px-5 lg:px-10 py-5 lg:py-7 pb-24 lg:pb-7 overflow-x-hidden">
+      <section className="px-5 lg:px-10 py-5 lg:py-7 pb-32 lg:pb-16 overflow-x-clip">
         {/* Was a hardcoded inline style (`1fr 380px`) that never
             responded to viewport width — the same bug as the Shelf grid
             on ProfilePage and the grid on MarketplacePage. Single-column
             below lg, same two-column layout at lg+. */}
         <div className="grid gap-7 grid-cols-1 lg:grid-cols-[1fr_380px]">
           <div className="min-w-0">
-            <h2 className="text-2xl font-serif mb-1">
-              {isOwnMarketplace ? 'My marketplace' : `${profile ? (profile.display_name || 'Seller') : 'Seller'}'s marketplace`}
+            <h2 className="text-[34px] leading-tight font-serif italic font-normal mb-1">
+              {isOwnMarketplace ? 'My marketplace' : `${profile ? (profile.display_name || profile.email) : 'Seller'}'s marketplace`}
             </h2>
 
             {isAllowed && (
@@ -464,37 +434,13 @@ function SellerMarketplacePage() {
                   <p className="text-text-muted font-sans text-sm mb-4">No auctions match "{auctionSearch}".</p>
                 )}
 
-                {activeAuctions.length > 0 && (
-                  <div className="mb-8">
-                    <div className="bg-text inline-block px-2.5 py-1 mb-3">
-                      <span className="font-mono text-[10px] tracking-wider uppercase font-bold text-bg">Active auctions</span>
-                    </div>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-                      {activeAuctions.map((listing) => (
-                        <ActiveAuctionCard key={listing.id} listing={listing} onSelect={() => setSelectedListing(listing)} />
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {upcomingAuctions.length > 0 && (
-                  <div className="mb-8">
-                    <div className="bg-text inline-block px-2.5 py-1 mb-3">
-                      <span className="font-mono text-[10px] tracking-wider uppercase font-bold text-bg">Upcoming auctions</span>
-                    </div>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-                      {upcomingAuctions.map((listing) => (
-                        <UpcomingAuctionCard key={listing.id} listing={listing} />
-                      ))}
-                    </div>
-                  </div>
-                )}
+                <LiveAuctions auctions={activeAuctions} onSelect={setSelectedListing} watch={watch} hideWhenEmpty />
+                <UpcomingAuctions auctions={upcomingAuctions} onSelect={setSelectedListing} watch={watch} />
+                <SuggestedRow items={suggested} onSelect={setSelectedListing} />
 
                 {isOwnMarketplace && pendingSaleListings.length > 0 && (
                   <div className="mb-8">
-                    <div className="bg-text inline-block px-2.5 py-1 mb-3">
-                      <span className="font-mono text-[10px] tracking-wider uppercase font-bold text-bg">Pending sale</span>
-                    </div>
+                    <h2 className="m-0 font-serif italic font-normal text-[28px] leading-tight text-text mb-3">Pending sale</h2>
                     <p className="text-xs text-text-faint mb-3">
                       Someone's bought this — it'll move to Sold once payment is confirmed.
                     </p>
@@ -646,7 +592,7 @@ function SellerMarketplacePage() {
                       ) : sellerMarketplaceView === 'crates' ? (
                         <MarketplaceCrateGridView listings={filteredRemainingListings} onSelectListing={setSelectedListing} />
                       ) : (
-                        <MarketplaceGrid listings={filteredRemainingListings} onSelectListing={setSelectedListing} />
+                        <MarketplaceGrid listings={filteredRemainingListings} onSelectListing={setSelectedListing} watch={watch} dealFor={dealFor} />
                       )
                     )}
                   </div>
@@ -656,6 +602,7 @@ function SellerMarketplacePage() {
           </div>
 
           <MarketplaceDetailPanel
+              onSelectListing={setSelectedListing}
             listing={selectedListing}
             currentUserId={user?.id}
             onMarkSold={handleMarkSold}
@@ -670,6 +617,8 @@ function SellerMarketplacePage() {
       {selectedListing && (
         <SidePanel onClose={() => setSelectedListing(null)} width={420} overlayOnly>
           <ListingDetailContent
+            key={selectedListing.id}
+            onSelectListing={setSelectedListing}
             listing={selectedListing}
             currentUserId={user?.id}
             onMarkSold={handleMarkSold}

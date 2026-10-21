@@ -81,9 +81,7 @@ function ReportButton({ targetType, targetId, label = 'Report', className = '' }
           onClick={(e) => { if (e.target === e.currentTarget) close() }}
         >
           <form onSubmit={submit} className="bg-bg border border-border rounded-lg w-full max-w-md p-5 font-sans">
-            <div className="bg-text inline-block px-2.5 py-1 mb-3">
-              <span className="font-mono text-[10px] tracking-wider uppercase font-bold text-bg">Report this {noun}</span>
-            </div>
+            <h2 className="m-0 font-serif italic font-normal text-[28px] leading-tight text-text mb-3">Report this {noun}</h2>
             <p className="text-xs text-text-muted mt-0 mb-3">
               Reports go to the Vinyl Venue team. The {noun} is not told who reported them.
             </p>

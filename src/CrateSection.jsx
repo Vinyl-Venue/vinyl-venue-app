@@ -589,9 +589,7 @@ function CrateSection({ userId, isOwnProfile, realAlbums, onOpenAlbum }) {
   return (
     <div className="mb-8 font-sans">
       <div className="flex items-center justify-between mb-1">
-        <div className="bg-text inline-block px-2.5 py-1">
-          <span className="font-mono text-[10px] tracking-wider uppercase font-bold text-bg">Mini-Crates</span>
-        </div>
+        <h2 className="m-0 font-serif italic font-normal text-[28px] leading-tight text-text">Mini-Crates</h2>
         {isOwnProfile && !creatingCrate && (
           <button
             onClick={openCreateForm}

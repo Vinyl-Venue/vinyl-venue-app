@@ -203,11 +203,7 @@ function MarketplaceCrateGridView({ listings, onSelectListing }) {
     <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-6">
       {genreBuckets.map((bucket) => (
         <div key={bucket.genre}>
-          <div className="bg-text inline-block px-2 py-0.5 mb-2.5">
-            <span className="font-mono text-[9px] tracking-wider uppercase font-bold text-bg">
-              {bucket.genre} · {bucket.records.length}
-            </span>
-          </div>
+          <h2 className="m-0 font-serif italic font-normal text-xl leading-tight text-text mb-2.5">{bucket.genre} · {bucket.records.length}</h2>
           <CrateFlipCard listings={bucket.records} onSelectListing={onSelectListing} />
         </div>
       ))}

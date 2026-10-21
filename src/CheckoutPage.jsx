@@ -84,14 +84,14 @@ function CheckoutPage() {
     const sellerIds = [...new Set((listingRows || []).map((row) => row.user_id))]
 
     const { data: profiles } = sellerIds.length > 0
-      ? await supabase.from('profiles').select('id, display_name').in('id', sellerIds)
+      ? await supabase.from('profiles').select('id, display_name, email').in('id', sellerIds)
       : { data: [] }
     const profileById = new Map((profiles || []).map((p) => [p.id, p]))
 
     const names = {}
     for (const [listingId, sellerId] of sellerIdByListingId.entries()) {
       const profile = profileById.get(sellerId)
-      names[listingId] = profile?.display_name || 'Unknown seller'
+      names[listingId] = profile?.display_name || profile?.email || 'Unknown seller'
     }
     setSellerNames(names)
   }
@@ -207,7 +207,7 @@ function CheckoutPage() {
     <>
       <Header />
       <section className="px-5 lg:px-10 py-5 lg:py-7 pb-24 lg:pb-10 max-w-md">
-        <h2 className="text-2xl font-serif mb-4">Checkout</h2>
+        <h2 className="text-[34px] leading-tight font-serif italic font-normal mb-4">Checkout</h2>
 
         {items.length === 0 ? (
           <p className="text-text-muted font-sans text-sm">Nothing to check out.</p>
@@ -241,9 +241,7 @@ function CheckoutPage() {
             {!hasUnknownShipping && <div className="mb-4" />}
 
             <div className="bg-surface border border-dashed border-border rounded p-3 mb-5 font-sans">
-              <div className="bg-text inline-block px-2 py-0.5 mb-1.5">
-                <span className="font-mono text-[9px] tracking-wider uppercase font-bold text-bg">Payment (placeholder)</span>
-              </div>
+              <h2 className="m-0 font-serif italic font-normal text-xl leading-tight text-text mb-1.5">Payment (placeholder)</h2>
               <p className="text-xs text-text-muted m-0">
                 Real payment processing isn't connected yet. Clicking below simulates a successful charge for testing.
               </p>

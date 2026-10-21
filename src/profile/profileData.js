@@ -14,11 +14,19 @@ export function rowToAlbum(row) {
     pressingCountry: row.pressing_country,
     matrixNumber: row.matrix_number,
     deadwax: row.deadwax,
+    catalogNumber: row.catalog_number,
+    format: row.format,
+    vinylColor: row.vinyl_color,
+    edition: row.edition,
+    pressingYear: row.pressing_year,
+    barcode: row.barcode,
+    notes: row.notes,
     sleeveCondition: row.sleeve_condition,
     mediaCondition: row.media_condition,
     specialTags: row.special_tags || [],
     tracklist: row.tracklist || null,
-    credits: row.credits || null
+    credits: row.credits || null,
+    createdAt: row.created_at
   }
 }
 
@@ -64,6 +72,27 @@ export async function attachListingStatus(albumsList, ownerId) {
   }))
 }
 
+// The Discogs-style pressing fields live in columns added by
+// supabase/pressing_details.sql. They're only sent when filled in, so the
+// app keeps saving albums normally until that SQL has been run.
+const PRESSING_EXTRAS = [
+  ['catalogNumber', 'catalog_number'],
+  ['format', 'format'],
+  ['vinylColor', 'vinyl_color'],
+  ['edition', 'edition'],
+  ['pressingYear', 'pressing_year'],
+  ['barcode', 'barcode'],
+  ['notes', 'notes']
+]
+export function pressingExtrasToRow(source) {
+  const out = {}
+  for (const [camel, snake] of PRESSING_EXTRAS) {
+    const v = source?.[camel]
+    if (v !== undefined && v !== null && String(v).trim() !== '') out[snake] = camel === 'pressingYear' ? Number(v) : String(v).trim()
+  }
+  return out
+}
+
 export function albumToRow(album) {
   return {
     title: album.title,
@@ -81,7 +110,8 @@ export function albumToRow(album) {
     media_condition: album.mediaCondition,
     special_tags: album.specialTags,
     tracklist: album.tracklist || null,
-    credits: album.credits || null
+    credits: album.credits || null,
+    ...pressingExtrasToRow(album)
   }
 }
 

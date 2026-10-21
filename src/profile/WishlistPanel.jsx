@@ -17,11 +17,7 @@ function WishlistPanel({ isOwnProfile, wishlist }) {
   return (
     <div className="mt-8 max-w-lg">
       <div className="flex items-center justify-between mb-3">
-        <div className="bg-text inline-block px-2.5 py-1">
-          <span className="font-mono text-[10px] tracking-wider uppercase font-bold text-bg">
-            {isOwnProfile ? 'My Most Wanted' : 'Their wishlist'}
-          </span>
-        </div>
+        <h2 className="m-0 font-serif italic font-normal text-[28px] leading-tight text-text">{isOwnProfile ? 'My Most Wanted' : 'Their wishlist'}</h2>
         {isOwnProfile && !showAddToWishlist && (
           <button
             onClick={() => setShowAddToWishlist(true)}
