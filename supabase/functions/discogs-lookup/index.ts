@@ -105,7 +105,8 @@ Deno.serve(async (req: Request) => {
         format: (r.format || []).join(', '),
         country: r.country,
         label: (r.label || [])[0] || '',
-        catno: r.catno || ''
+        catno: r.catno || '',
+        masterId: r.master_id || null
       }))
 
       return new Response(JSON.stringify({ results }), {
@@ -179,6 +180,11 @@ Deno.serve(async (req: Request) => {
         edition,
         pressingYear: data.year || null,
         barcode: barcodeIdentifier ? barcodeIdentifier.value : '',
+        discogsReleaseId: data.id || null,
+        discogsMasterId: data.master_id || null,
+        styles: (data.styles || []).join(', '),
+        discogsHave: data.community?.have ?? null,
+        discogsWant: data.community?.want ?? null,
         tracklist,
         credits
       }

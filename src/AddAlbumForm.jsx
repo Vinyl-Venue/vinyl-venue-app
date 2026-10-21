@@ -67,6 +67,7 @@ function AddAlbumForm({
   const [pressingCountry, setPressingCountry] = useState('')
   const [matrixNumber, setMatrixNumber] = useState('')
   const [deadwax, setDeadwax] = useState('')
+  const [discogsMeta, setDiscogsMeta] = useState({})
   const [catalogNumber, setCatalogNumber] = useState('')
   const [format, setFormat] = useState('')
   const [vinylColor, setVinylColor] = useState('')
@@ -100,6 +101,13 @@ function AddAlbumForm({
       setPressingCountry(editingAlbum.pressingCountry || '')
       setMatrixNumber(editingAlbum.matrixNumber || '')
       setDeadwax(editingAlbum.deadwax || '')
+      setDiscogsMeta({
+        discogsReleaseId: editingAlbum.discogsReleaseId || null,
+        discogsMasterId: editingAlbum.discogsMasterId || null,
+        styles: editingAlbum.styles || '',
+        discogsHave: editingAlbum.discogsHave ?? null,
+        discogsWant: editingAlbum.discogsWant ?? null
+      })
       setCatalogNumber(editingAlbum.catalogNumber || '')
       setFormat(editingAlbum.format || '')
       setVinylColor(editingAlbum.vinylColor || '')
@@ -124,6 +132,7 @@ function AddAlbumForm({
     setDiscogsImageUrl('')
     setTracklist(null)
     setCredits(null)
+    setDiscogsMeta({})
     setLabel('')
     setPressingCountry('')
     setMatrixNumber('')
@@ -214,6 +223,14 @@ function AddAlbumForm({
     if (release.edition) setEdition(release.edition)
     if (release.pressingYear) setPressingYear(String(release.pressingYear))
     if (release.barcode) setBarcode(release.barcode)
+    // Link to the exact Discogs release plus its styles and community counts.
+    setDiscogsMeta({
+      discogsReleaseId: release.discogsReleaseId || null,
+      discogsMasterId: release.discogsMasterId || null,
+      styles: release.styles || '',
+      discogsHave: release.discogsHave ?? null,
+      discogsWant: release.discogsWant ?? null
+    })
 
     if (release.coverImageUrl && !imageFile) {
       setImagePreviewUrl(release.coverImageUrl)
@@ -262,7 +279,8 @@ function AddAlbumForm({
       notes: notes,
       sleeveCondition: sleeveCondition,
       mediaCondition: mediaCondition,
-      specialTags: specialTags
+      specialTags: specialTags,
+      ...discogsMeta
     }
 
     if (editingAlbum) {

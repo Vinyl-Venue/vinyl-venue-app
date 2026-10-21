@@ -25,12 +25,27 @@ function OtherPressings({ listing, onSelect }) {
         .limit(20)
       if (cancelled) return
       if (error) { console.error('Error loading other pressings:', error.message); setRows([]); return }
-      const withBids = await attachHighestBids((data || []).map(rowToListing))
+      let found = data || []
+      // Same Discogs master release counts as the same album even when the
+      // titles are worded differently.
+      if (listing.discogsMasterId) {
+        const { data: byMaster } = await supabase
+          .from('listings')
+          .select('*')
+          .eq('status', 'active')
+          .eq('discogs_master_id', listing.discogsMasterId)
+          .neq('id', listing.id)
+          .limit(20)
+        const seen = new Set(found.map((r) => r.id))
+        found = [...found, ...(byMaster || []).filter((r) => !seen.has(r.id))]
+      }
+      if (cancelled) return
+      const withBids = await attachHighestBids(found.map(rowToListing))
       if (!cancelled) setRows(withBids)
     }
     load()
     return () => { cancelled = true }
-  }, [listing.id, listing.title, listing.artist])
+  }, [listing.id, listing.title, listing.artist, listing.discogsMasterId])
 
   if (rows === null) return null
   const here = pressingSignature(listing)

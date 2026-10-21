@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { pressingSummary, pressingParts, albumKey } from './marketplace/pressings'
+import { pressingSummary, pressingParts, albumKeyer } from './marketplace/pressings'
 import AuctionCountdown from './AuctionCountdown'
 
 const PLACEHOLDER = "https://placehold.co/300x300/E4E2DC/E4E2DC"
@@ -275,6 +275,7 @@ function MarketplaceWallView({ listings, onSelectListing }) {
           )
           // Different pressings of the same album sit side by side, each on
           // its own spine, numbered so you can tell them apart.
+          const albumKey = albumKeyer(sortedByArtist)
           const copiesOf = new Map()
           for (const l of sortedByArtist) copiesOf.set(albumKey(l), (copiesOf.get(albumKey(l)) || 0) + 1)
           const seen = new Map()

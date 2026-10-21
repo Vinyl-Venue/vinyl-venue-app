@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import RecordCard from '../RecordCard'
-import { fuzzyMatchKey } from '../utils'
+import { groupByAlbum } from '../marketplace/pressings'
 
 // The "Grid" view: a four-across cover grid. Search / sort / filter live in
 // the shelf toolbar above it, so this only draws what it is given.
@@ -9,13 +9,13 @@ import { fuzzyMatchKey } from '../utils'
 // they take one cell instead of several. The arrows flip through them in
 // place (same idea as the Crates view); clicking the cover opens the one showing.
 function groupAlbums(albums) {
-  const groups = new Map()
-  for (const album of albums) {
-    const key = `${album?.isInCollection === false ? 'w' : 'o'}|${fuzzyMatchKey(album || {})}`
-    if (!groups.has(key)) groups.set(key, [])
-    groups.get(key).push(album)
-  }
-  return [...groups.entries()].map(([key, items]) => ({ key, items }))
+  // Wishlist items never stack with owned copies.
+  const owned = groupByAlbum(albums.filter((a) => a?.isInCollection !== false)).map((g) => ({ ...g, key: `o|${g.key}` }))
+  const wished = groupByAlbum(albums.filter((a) => a?.isInCollection === false)).map((g) => ({ ...g, key: `w|${g.key}` }))
+  // Keep the order the shelf is sorted in: place each group where its first album sits.
+  const all = [...owned, ...wished]
+  const pos = new Map(albums.map((a, i) => [a, i]))
+  return all.sort((x, y) => pos.get(x.items[0]) - pos.get(y.items[0]))
 }
 
 const pill = 'absolute left-2 top-10 z-10 bg-text text-bg font-mono text-[10px] tracking-wider px-2 py-0.5 pointer-events-none'

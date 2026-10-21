@@ -12,9 +12,16 @@ export function buildTaste(albums, wishlist) {
     const genre = norm(a.genre)
     if (genre) genres.set(genre, (genres.get(genre) || 0) + 1)
   }
+  const styles = new Map()
+  for (const a of albums || []) {
+    for (const st of String(a.styles || '').split(',')) {
+      const k = norm(st)
+      if (k) styles.set(k, (styles.get(k) || 0) + 1)
+    }
+  }
   const wishArtists = new Set((wishlist || []).map((w) => norm(w.artist)).filter(Boolean))
   const topGenres = new Set([...genres.entries()].sort((a, b) => b[1] - a[1]).slice(0, 3).map(([g]) => g))
-  return { artists, genres, wishArtists, topGenres }
+  return { artists, genres, styles, wishArtists, topGenres }
 }
 
 // Scores active listings against the taste profile and returns the best
@@ -42,6 +49,14 @@ export function suggestListings({ listings, taste, ownedKeys, followedIds, userI
     if (genre && taste.genres.has(genre)) {
       score += taste.topGenres.has(genre) ? 2 : 1
       if (!reason) reason = `Matches your ${l.genre} shelf`
+    }
+    // Discogs styles are finer than genre, so a match says more.
+    if (taste.styles?.size) {
+      const hit = String(l.styles || '').split(',').map(norm).filter((st) => st && taste.styles.has(st))
+      if (hit.length) {
+        score += Math.min(hit.length, 2)
+        if (!reason) reason = `Matches the ${hit[0]} records on your shelf`
+      }
     }
     if (followedIds?.has(l.userId)) score += 1
     if (score >= 2 && reason) scored.push({ listing: l, score, reason })

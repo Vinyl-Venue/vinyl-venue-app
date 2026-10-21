@@ -21,6 +21,11 @@ export function rowToAlbum(row) {
     pressingYear: row.pressing_year,
     barcode: row.barcode,
     notes: row.notes,
+    discogsReleaseId: row.discogs_release_id,
+    discogsMasterId: row.discogs_master_id,
+    styles: row.styles,
+    discogsHave: row.discogs_have,
+    discogsWant: row.discogs_want,
     sleeveCondition: row.sleeve_condition,
     mediaCondition: row.media_condition,
     specialTags: row.special_tags || [],
@@ -82,13 +87,19 @@ const PRESSING_EXTRAS = [
   ['edition', 'edition'],
   ['pressingYear', 'pressing_year'],
   ['barcode', 'barcode'],
-  ['notes', 'notes']
+  ['notes', 'notes'],
+  ['discogsReleaseId', 'discogs_release_id'],
+  ['discogsMasterId', 'discogs_master_id'],
+  ['styles', 'styles'],
+  ['discogsHave', 'discogs_have'],
+  ['discogsWant', 'discogs_want']
 ]
+const NUMERIC_EXTRAS = new Set(['pressingYear', 'discogsReleaseId', 'discogsMasterId', 'discogsHave', 'discogsWant'])
 export function pressingExtrasToRow(source) {
   const out = {}
   for (const [camel, snake] of PRESSING_EXTRAS) {
     const v = source?.[camel]
-    if (v !== undefined && v !== null && String(v).trim() !== '') out[snake] = camel === 'pressingYear' ? Number(v) : String(v).trim()
+    if (v !== undefined && v !== null && String(v).trim() !== '') out[snake] = NUMERIC_EXTRAS.has(camel) ? Number(v) : String(v).trim()
   }
   return out
 }

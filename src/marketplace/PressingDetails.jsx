@@ -10,6 +10,7 @@ function PressingDetails({ item, showCondition = true, notesLabel = 'Notes' }) {
     item.format,
     item.pressingCountry && (item.pressingYear ? `${item.pressingCountry} ${item.pressingYear}` : item.pressingCountry)
   ].filter(Boolean)
+  const styles = String(item.styles || '').split(',').map((v) => v.trim()).filter(Boolean)
 
   const rows = [
     ['Label', item.label],
@@ -25,7 +26,8 @@ function PressingDetails({ item, showCondition = true, notesLabel = 'Notes' }) {
   ].filter(([, v]) => v)
 
   const grades = showCondition && (item.sleeveCondition || item.mediaCondition)
-  if (chips.length === 0 && rows.length === 0 && !grades && !item.notes) return null
+  const hasDiscogs = item.discogsReleaseId || item.discogsHave || item.discogsWant
+  if (chips.length === 0 && rows.length === 0 && styles.length === 0 && !hasDiscogs && !grades && !item.notes) return null
 
   return (
     <div className="mt-4 pt-4 border-t border-border font-sans">
@@ -45,6 +47,24 @@ function PressingDetails({ item, showCondition = true, notesLabel = 'Notes' }) {
             <><dt key={`k-${k}`} className="text-text-muted">{k}</dt><dd key={`v-${k}`} className="m-0 text-text break-words">{String(v)}</dd></>
           ))}
         </dl>
+      )}
+      {styles.length > 0 && (
+        <div className="flex flex-wrap gap-1.5 mt-3">
+          {styles.map((st) => (
+            <span key={st} className="text-[11px] text-text-muted border border-border px-2 py-0.5 rounded-full">{st}</span>
+          ))}
+        </div>
+      )}
+      {hasDiscogs && (
+        <p className="m-0 mt-3 text-[12px] text-text-muted">
+          {item.discogsHave || item.discogsWant ? `On Discogs: ${Number(item.discogsHave || 0).toLocaleString()} have \u00b7 ${Number(item.discogsWant || 0).toLocaleString()} want` : ''}
+          {item.discogsReleaseId && (
+            <>
+              {item.discogsHave || item.discogsWant ? ' \u00b7 ' : ''}
+              <a href={`https://www.discogs.com/release/${item.discogsReleaseId}`} target="_blank" rel="noreferrer" className="text-accent">View on Discogs</a>
+            </>
+          )}
+        </p>
       )}
       {item.notes && (
         <div className="mt-3">
