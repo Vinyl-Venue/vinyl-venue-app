@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import AutocompleteInput from './AutocompleteInput'
+import { scanBarcodeFromFile } from './barcodeScan'
 import SelectWithCustom from './SelectWithCustom'
 import SpecialTagsInput from './SpecialTagsInput'
 import { supabase } from './supabaseClient'
@@ -83,6 +84,8 @@ function AddAlbumForm({
   const [discogsSearching, setDiscogsSearching] = useState(false)
   const [discogsLoadingId, setDiscogsLoadingId] = useState(null)
   const [discogsError, setDiscogsError] = useState('')
+  const [scanning, setScanning] = useState(false)
+  const [scanNote, setScanNote] = useState('')
   const [discogsFormat, setDiscogsFormat] = useState('Vinyl')
 
   useEffect(() => {
@@ -169,11 +172,58 @@ function AddAlbumForm({
     setImagePreviewUrl(URL.createObjectURL(file))
   }
 
-  async function handleDiscogsSearch() {
-    if (title.trim() === '' && artist.trim() === '') {
-      setDiscogsError('Enter a title or artist first.')
+  // Search Discogs by an exact barcode — usually lands on the right pressing.
+  async function searchByBarcode(code) {
+    setDiscogsSearching(true)
+    setDiscogsError('')
+    setDiscogsResults([])
+    const { results, error } = await discogsSearch('', '', { barcode: code, format: discogsFormat })
+    setDiscogsSearching(false)
+    if (error) { setDiscogsError(error); return }
+    setDiscogsResults(results)
+    setScanNote(
+      results.length === 0
+        ? `Barcode ${code} isn't on Discogs for this format. Try searching by title and artist.`
+        : results.length === 1
+          ? `Barcode ${code} matched one pressing — pick it below to fill in the details.`
+          : `Barcode ${code} matched ${results.length} pressings — pick the one that matches your record.`
+    )
+  }
+
+  async function handleBarcodePhoto(event) {
+    const file = event.target.files?.[0]
+    event.target.value = ''
+    if (!file) return
+    setScanning(true)
+    setScanNote('')
+    setDiscogsError('')
+    let code = null
+    try {
+      code = await scanBarcodeFromFile(file)
+    } catch (err) {
+      console.error('Barcode scan failed:', err)
+    }
+    setScanning(false)
+    if (!code) {
+      setScanNote("Couldn't read a barcode in that photo. Try a closer, well-lit shot of just the barcode, or type the numbers into the Barcode field.")
       return
     }
+    setBarcode(code)
+    await searchByBarcode(code)
+  }
+
+  async function handleDiscogsSearch() {
+    // A typed barcode is enough on its own when there's no title or artist yet.
+    if (title.trim() === '' && artist.trim() === '' && barcode.trim() !== '') {
+      setScanNote('')
+      await searchByBarcode(barcode.replace(/\D/g, ''))
+      return
+    }
+    if (title.trim() === '' && artist.trim() === '') {
+      setDiscogsError('Enter a title, artist or barcode first.')
+      return
+    }
+    setScanNote('')
 
     setDiscogsSearching(true)
     setDiscogsError('')
@@ -340,7 +390,15 @@ function AddAlbumForm({
         >
           {discogsSearching ? 'Searching...' : 'Find on Discogs'}
         </button>
+        <label className={`bg-transparent border border-border text-text-muted px-3 py-2 rounded font-sans text-sm cursor-pointer hover:border-accent hover:text-accent ${scanning ? 'opacity-60 pointer-events-none' : ''}`}>
+          {scanning ? 'Reading barcode...' : 'Scan barcode from photo'}
+          <input type="file" accept="image/*" capture="environment" onChange={handleBarcodePhoto} className="hidden" />
+        </label>
       </div>
+
+      {scanNote && (
+        <p className="font-sans text-xs text-text-muted mb-2">{scanNote}</p>
+      )}
 
       {discogsError && (
         <p className="font-sans text-xs text-text-muted mb-2">{discogsError}</p>

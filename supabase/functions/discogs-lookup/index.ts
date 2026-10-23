@@ -60,6 +60,7 @@ Deno.serve(async (req: Request) => {
       const label = url.searchParams.get('label') || ''
       const year = url.searchParams.get('year') || ''
       const country = url.searchParams.get('country') || ''
+      const barcode = (url.searchParams.get('barcode') || '').replace(/\D/g, '')
 
       // format defaults to Vinyl when the caller doesn't specify one at
       // all — this is a vinyl-only platform, so unfiltered Discogs search
@@ -69,7 +70,7 @@ Deno.serve(async (req: Request) => {
       // override the default.
       const format = url.searchParams.has('format') ? url.searchParams.get('format') : 'Vinyl'
 
-      if (!title && !artist) {
+      if (!title && !artist && !barcode) {
         return new Response(JSON.stringify({ results: [] }), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         })
@@ -84,6 +85,7 @@ Deno.serve(async (req: Request) => {
       if (label) params.set('label', label)
       if (year) params.set('year', year)
       if (country) params.set('country', country)
+      if (barcode) params.set('barcode', barcode)
       if (format) params.set('format', format)
 
       const searchUrl = `https://api.discogs.com/database/search?${params.toString()}`

@@ -219,7 +219,7 @@ export async function discogsSearch(title, artist, extra = {}) {
   // already defaults to "Vinyl" server-side when it's omitted, since
   // this is a vinyl-only platform. Pass format explicitly only when a
   // caller wants to override that default (e.g. an "All formats" toggle).
-  const { label = '', year = '', country = '', format } = extra
+  const { label = '', year = '', country = '', format, barcode = '' } = extra
 
   const params = new URLSearchParams()
   params.set('action', 'search')
@@ -228,6 +228,7 @@ export async function discogsSearch(title, artist, extra = {}) {
   if (label) params.set('label', label)
   if (year) params.set('year', String(year))
   if (country) params.set('country', country)
+  if (barcode) params.set('barcode', barcode)
   if (format !== undefined) params.set('format', format)
 
   const query = `discogs-lookup?${params.toString()}`
