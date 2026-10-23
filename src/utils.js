@@ -212,6 +212,18 @@ export async function attachRarity(albums) {
 // AddAlbumForm (adding a new album) and AlbumModal (finding a tracklist for
 // an existing one).
 
+// Every pressing of one album (Discogs "master"), oldest first.
+export async function discogsVersions(masterId, format = 'Vinyl') {
+  const params = new URLSearchParams()
+  params.set('action', 'versions')
+  params.set('master_id', String(masterId))
+  params.set('format', format)
+  const { data, error } = await supabase.functions.invoke(`discogs-lookup?${params.toString()}`, { method: 'GET' })
+  if (error) return { versions: [], error: 'Could not load the other pressings.' }
+  if (data.error) return { versions: [], error: data.error }
+  return { versions: data.versions || [], error: null }
+}
+
 export async function discogsSearch(title, artist, extra = {}) {
   // extra: { label, year, country, format } — sent as real structured
   // Discogs search parameters rather than blended into one free-text

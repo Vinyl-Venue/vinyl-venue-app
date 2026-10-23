@@ -76,42 +76,93 @@ Deno.serve(async (req: Request) => {
         })
       }
 
+      // A UPC-A (12 digits) and its EAN-13 form (leading 0) are the same
+      // barcode, but Discogs stores whichever one the submitter typed, so
+      // search both and merge.
+      const variants = barcode
+        ? [...new Set([barcode, barcode.length === 12 ? `0${barcode}` : barcode.length === 13 && barcode.startsWith('0') ? barcode.slice(1) : barcode])]
+        : ['']
+      const seen = new Set<number>()
+      const results: any[] = []
+      for (const code of variants) {
+        const params = new URLSearchParams()
+        params.set('type', 'release')
+        params.set('token', token)
+        params.set('per_page', '25')
+        if (title) params.set('release_title', title)
+        if (artist) params.set('artist', artist)
+        if (label) params.set('label', label)
+        if (year) params.set('year', year)
+        if (country) params.set('country', country)
+        if (code) params.set('barcode', code)
+        if (format) params.set('format', format)
+
+        const res = await fetch(`https://api.discogs.com/database/search?${params.toString()}`, { headers: discogsHeaders })
+        if (!res.ok) {
+          return new Response(JSON.stringify({ error: `Discogs search failed (${res.status})` }), {
+            status: 502,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          })
+        }
+        const data = await res.json()
+        for (const r of data.results || []) {
+          if (seen.has(r.id)) continue
+          seen.add(r.id)
+          results.push({
+            id: r.id,
+            title: r.title,
+            year: r.year,
+            thumb: r.thumb,
+            format: (r.format || []).join(', '),
+            country: r.country,
+            label: (r.label || [])[0] || '',
+            catno: r.catno || '',
+            masterId: r.master_id || null
+          })
+        }
+      }
+
+      return new Response(JSON.stringify({ results }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      })
+    }
+
+    if (action === 'versions') {
+      // Every pressing of one album (a Discogs "master"), so a barcode that
+      // only matches later reissues can still lead to the original.
+      const masterId = url.searchParams.get('master_id')
+      if (!masterId) {
+        return new Response(JSON.stringify({ error: 'Missing master id' }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        })
+      }
+      const format = url.searchParams.has('format') ? url.searchParams.get('format') : 'Vinyl'
       const params = new URLSearchParams()
-      params.set('type', 'release')
       params.set('token', token)
-      params.set('per_page', '25')
-      if (title) params.set('release_title', title)
-      if (artist) params.set('artist', artist)
-      if (label) params.set('label', label)
-      if (year) params.set('year', year)
-      if (country) params.set('country', country)
-      if (barcode) params.set('barcode', barcode)
+      params.set('per_page', '100')
+      params.set('sort', 'released')
       if (format) params.set('format', format)
-
-      const searchUrl = `https://api.discogs.com/database/search?${params.toString()}`
-      const res = await fetch(searchUrl, { headers: discogsHeaders })
-
+      const res = await fetch(`https://api.discogs.com/masters/${masterId}/versions?${params.toString()}`, { headers: discogsHeaders })
       if (!res.ok) {
-        return new Response(JSON.stringify({ error: `Discogs search failed (${res.status})` }), {
+        return new Response(JSON.stringify({ error: `Discogs versions lookup failed (${res.status})` }), {
           status: 502,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         })
       }
-
       const data = await res.json()
-      const results = (data.results || []).map((r: any) => ({
-        id: r.id,
-        title: r.title,
-        year: r.year,
-        thumb: r.thumb,
-        format: (r.format || []).join(', '),
-        country: r.country,
-        label: (r.label || [])[0] || '',
-        catno: r.catno || '',
-        masterId: r.master_id || null
+      const versions = (data.versions || []).map((x: any) => ({
+        id: x.id,
+        title: x.title,
+        year: x.released || '',
+        thumb: x.thumb,
+        format: x.format || '',
+        country: x.country || '',
+        label: x.label || '',
+        catno: x.catno || '',
+        masterId: Number(masterId)
       }))
-
-      return new Response(JSON.stringify({ results }), {
+      return new Response(JSON.stringify({ versions }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       })
     }
@@ -196,7 +247,7 @@ Deno.serve(async (req: Request) => {
       })
     }
 
-    return new Response(JSON.stringify({ error: 'Unknown action — use action=search or action=release' }), {
+    return new Response(JSON.stringify({ error: 'Unknown action — use action=search, action=versions or action=release' }), {
       status: 400,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     })

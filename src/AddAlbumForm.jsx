@@ -4,7 +4,7 @@ import { scanBarcodeFromFile } from './barcodeScan'
 import SelectWithCustom from './SelectWithCustom'
 import SpecialTagsInput from './SpecialTagsInput'
 import { supabase } from './supabaseClient'
-import { discogsSearch, discogsFetchRelease } from './utils'
+import { discogsSearch, discogsFetchRelease, discogsVersions } from './utils'
 
 const CONDITION_OPTIONS = [
   { value: '', label: 'Select condition' },
@@ -84,6 +84,7 @@ function AddAlbumForm({
   const [discogsSearching, setDiscogsSearching] = useState(false)
   const [discogsLoadingId, setDiscogsLoadingId] = useState(null)
   const [discogsError, setDiscogsError] = useState('')
+  const [versions, setVersions] = useState([])
   const [scanning, setScanning] = useState(false)
   const [scanNote, setScanNote] = useState('')
   const [discogsFormat, setDiscogsFormat] = useState('Vinyl')
@@ -151,6 +152,7 @@ function AddAlbumForm({
     setMediaCondition('')
     setSpecialTags([])
     setDiscogsResults([])
+    setVersions([])
     setDiscogsError('')
   }
 
@@ -177,10 +179,23 @@ function AddAlbumForm({
     setDiscogsSearching(true)
     setDiscogsError('')
     setDiscogsResults([])
+    setVersions([])
     const { results, error } = await discogsSearch('', '', { barcode: code, format: discogsFormat })
     setDiscogsSearching(false)
     if (error) { setDiscogsError(error); return }
     setDiscogsResults(results)
+    setVersions([])
+    // A barcode often matches only some pressings (reissues reuse codes, and
+    // older entries may have none), so also pull every vinyl pressing of the
+    // album so the right one can be picked by year and country.
+    const masterId = results.find((r) => r.masterId)?.masterId
+    let more = 0
+    if (masterId) {
+      const { versions: all } = await discogsVersions(masterId, discogsFormat === '' ? '' : discogsFormat)
+      const matched = new Set(results.map((r) => r.id))
+      setVersions(all.map((v) => ({ ...v, barcodeMatch: matched.has(v.id) })))
+      more = all.filter((v) => !matched.has(v.id)).length
+    }
     setScanNote(
       results.length === 0
         ? `Barcode ${code} isn't on Discogs for this format. Try searching by title and artist.`
@@ -188,6 +203,7 @@ function AddAlbumForm({
           ? `Barcode ${code} matched one pressing — pick it below to fill in the details.`
           : `Barcode ${code} matched ${results.length} pressings — pick the one that matches your record.`
     )
+    if (more > 0) setScanNote((n) => `${n} Barcodes are often shared with reissues, so ${more} more pressing${more === 1 ? '' : 's'} of this album ${more === 1 ? 'is' : 'are'} listed below. Check the year and country on your record.`)
   }
 
   async function handleBarcodePhoto(event) {
@@ -228,6 +244,7 @@ function AddAlbumForm({
     setDiscogsSearching(true)
     setDiscogsError('')
     setDiscogsResults([])
+    setVersions([])
 
     const { results, error } = await discogsSearch(title, artist, { label, year, format: discogsFormat })
 
@@ -295,6 +312,7 @@ function AddAlbumForm({
     }
 
     setDiscogsResults([])
+    setVersions([])
   }
 
   async function handleSubmit(event) {
@@ -436,6 +454,43 @@ function AddAlbumForm({
               {discogsLoadingId === result.id && (
                 <span className="text-text-muted text-xs">Loading...</span>
               )}
+
+      {versions.length > 0 && (
+        <div className="mb-3 max-w-xl">
+          <p className="font-sans text-xs text-text-muted m-0 mb-1.5">
+            All {versions.length} pressings of this album, oldest first
+          </p>
+          <div className="flex flex-col gap-1.5 max-h-80 overflow-y-auto">
+            {versions.map((result) => (
+              <button
+                key={result.id}
+                type="button"
+                onClick={() => handleSelectRelease(result)}
+                disabled={discogsLoadingId === result.id}
+                className="flex items-center gap-3 bg-surface border border-border rounded px-3 py-2 text-left cursor-pointer hover:border-accent disabled:opacity-60"
+              >
+                <img
+                  src={result.thumb || "https://placehold.co/40x40/1c1a15/a8a29a?text=%20"}
+                  alt=""
+                  className="w-10 h-10 object-cover rounded flex-shrink-0"
+                />
+                <span className="font-sans text-sm text-text flex-1">
+                  {[result.year, result.country].filter(Boolean).join(' · ') || result.title}
+                  <span className="text-text-muted text-xs block">
+                    {[result.label, result.catno, result.format].filter(Boolean).join(' · ')}
+                  </span>
+                </span>
+                {result.barcodeMatch && (
+                  <span className="text-[10px] font-mono tracking-wider uppercase text-accent border border-accent px-1.5 py-px flex-shrink-0">Barcode match</span>
+                )}
+                {discogsLoadingId === result.id && (
+                  <span className="text-text-muted text-xs">Loading...</span>
+                )}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
             </button>
           ))}
         </div>
