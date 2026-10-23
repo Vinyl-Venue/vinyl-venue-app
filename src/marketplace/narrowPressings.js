@@ -90,3 +90,55 @@ export function applyAnswer(cands, question, value) {
   const a = ATTRS.find((x) => x.key === question.key)
   return cands.filter((c) => a.get(c) === value)
 }
+
+// ---------- Look-alikes ----------
+
+function outwardKey(c) {
+  return [c.yearNum || '', (c.country || '').toLowerCase(), (c.label || '').toLowerCase(), (c.catno || '').toLowerCase(), [...c.tokens].sort().join('|').toLowerCase()].join('~')
+}
+
+// Pressings that look the same from the outside (same year, country, label,
+// catalog number and edition words). Only the matrix / runout etched in the vinyl
+// can separate them. Returns a Map of candidate id -> how many others look identical.
+export function lookAlikeCounts(cands) {
+  const byKey = new Map()
+  for (const c of cands) {
+    const k = outwardKey(c)
+    byKey.set(k, [...(byKey.get(k) || []), c.id])
+  }
+  const out = new Map()
+  for (const ids of byKey.values()) if (ids.length > 1) for (const id of ids) out.set(id, ids.length - 1)
+  return out
+}
+
+// ---------- MusicBrainz cross-check ----------
+
+// Discogs country names -> MusicBrainz ISO codes.
+const COUNTRY_CODES = {
+  us: 'US', usa: 'US', uk: 'GB', 'uk & europe': 'GB', europe: 'XE', worldwide: 'XW', japan: 'JP', canada: 'CA',
+  australia: 'AU', germany: 'DE', france: 'FR', italy: 'IT', netherlands: 'NL', brazil: 'BR', mexico: 'MX',
+  spain: 'ES', sweden: 'SE', russia: 'RU', ireland: 'IE', 'new zealand': 'NZ', argentina: 'AR', 'south korea': 'KR'
+}
+const norm = (s) => String(s || '').toLowerCase().replace(/[^a-z0-9]/g, '')
+
+// Which fields MusicBrainz agrees with for one Discogs candidate. Returns
+// { found, agree: [...], differ: [...] } using the closest MusicBrainz release
+// that carries the same barcode.
+export function crossCheck(candidate, mbReleases) {
+  if (!mbReleases || mbReleases.length === 0) return { found: false, agree: [], differ: [] }
+  const code = COUNTRY_CODES[String(candidate.country || '').toLowerCase()]
+  let best = null
+  for (const r of mbReleases) {
+    const agree = []
+    const differ = []
+    const rYear = parseInt(String(r.date || '').slice(0, 4), 10) || null
+    if (candidate.yearNum && rYear) (candidate.yearNum === rYear ? agree : differ).push('year')
+    if (code && r.country) (code === r.country ? agree : differ).push('country')
+    const cl = norm(candidate.label)
+    if (cl && r.labels?.length) (r.labels.some((l) => norm(l).includes(cl) || cl.includes(norm(l))) ? agree : differ).push('label')
+    const cn = norm(candidate.catno)
+    if (cn && r.catnos?.length) (r.catnos.some((x) => norm(x) === cn) ? agree : differ).push('catalog no.')
+    if (!best || agree.length - differ.length > best.agree.length - best.differ.length) best = { found: true, agree, differ }
+  }
+  return best
+}

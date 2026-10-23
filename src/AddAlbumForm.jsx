@@ -489,6 +489,7 @@ function AddAlbumForm({
         <PressingFinder
           key={albumHint?.masterId || 'finder'}
           candidates={versions}
+          barcode={barcode}
           loadingId={discogsLoadingId}
           onPick={handleSelectRelease}
           onCantTell={handleCantTell}

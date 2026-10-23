@@ -253,6 +253,15 @@ export async function discogsSearch(title, artist, extra = {}) {
 }
 
 // Photos and identifying details for one release (for side-by-side comparison).
+// Second opinion from MusicBrainz for the same barcode.
+export async function musicbrainzByBarcode(barcode) {
+  const code = String(barcode || '').replace(/\D/g, '')
+  if (!code) return { releases: [], error: null }
+  const { data, error } = await supabase.functions.invoke(`musicbrainz-lookup?barcode=${code}`, { method: 'GET' })
+  if (error) return { releases: [], error: 'Could not reach MusicBrainz.' }
+  return { releases: data?.releases || [], error: data?.error || null }
+}
+
 export async function discogsPreview(id) {
   const { data, error } = await supabase.functions.invoke(`discogs-lookup?action=preview&id=${id}`, { method: 'GET' })
   if (error) return { preview: null, error: 'Could not load photos for that pressing.' }

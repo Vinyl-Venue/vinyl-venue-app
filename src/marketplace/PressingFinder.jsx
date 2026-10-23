@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
-import { discogsPreview } from '../utils'
-import { labelCandidates, bestQuestion, applyAnswer } from './narrowPressings'
+import { discogsPreview, musicbrainzByBarcode } from '../utils'
+import { labelCandidates, bestQuestion, applyAnswer, lookAlikeCounts, crossCheck } from './narrowPressings'
 
 const PLACEHOLDER = 'https://placehold.co/80x80/E4E2DC/E4E2DC'
 
@@ -18,9 +18,18 @@ function Traits({ c }) {
   return <span className="block text-[12px] text-text mt-0.5">{t.join(' \u00b7 ')}</span>
 }
 
-function Badges({ c, popular }) {
+function Badges({ c, popular, check, twins }) {
   return (
     <span className="flex flex-wrap gap-1 mt-1">
+      {check?.found && check.agree.length >= 2 && check.differ.length === 0 && (
+        <span title={`MusicBrainz agrees on: ${check.agree.join(', ')}`} className="text-[10px] font-mono tracking-wider uppercase border border-[#4f7a56] text-[#4f7a56] px-1.5 py-px">2nd source agrees</span>
+      )}
+      {check?.found && check.differ.length > 0 && (
+        <span title="Discogs and MusicBrainz disagree, so double-check these on your record" className="text-[10px] font-mono tracking-wider uppercase border border-[#b7791f] text-[#b7791f] px-1.5 py-px">2nd source differs: {check.differ.join(', ')}</span>
+      )}
+      {twins > 0 && (
+        <span title="Same year, country, label, catalog number and edition. Only the runout etching tells them apart." className="text-[10px] font-mono tracking-wider uppercase border border-border-strong text-text-muted px-1.5 py-px">Looks identical to {twins} other{twins === 1 ? '' : 's'}</span>
+      )}
       {c.kind && <span className="text-[10px] font-mono tracking-wider uppercase border border-border-strong px-1.5 py-px text-text">{c.kind}</span>}
       {c.barcodeMatch && <span className="text-[10px] font-mono tracking-wider uppercase border border-accent text-accent px-1.5 py-px">Barcode match</span>}
       {popular && <span className="text-[10px] font-mono tracking-wider uppercase border border-border text-text-muted px-1.5 py-px">Most common</span>}
@@ -30,12 +39,20 @@ function Badges({ c, popular }) {
 
 // Guided "which pressing do you have?" — asks one easy question at a time,
 // then shows photos side by side once only a few candidates are left.
-function PressingFinder({ candidates, onPick, onCantTell, loadingId }) {
+function PressingFinder({ candidates, onPick, onCantTell, loadingId, barcode }) {
   const all = useMemo(() => labelCandidates(candidates), [candidates])
   const [answers, setAnswers] = useState([])
   const [skipped, setSkipped] = useState(() => new Set())
   const [previews, setPreviews] = useState({})
   const [showAll, setShowAll] = useState(false)
+  const [mb, setMb] = useState([])
+
+  useEffect(() => {
+    let cancelled = false
+    if (!barcode) return undefined
+    musicbrainzByBarcode(barcode).then(({ releases }) => { if (!cancelled) setMb(releases || []) })
+    return () => { cancelled = true }
+  }, [barcode])
 
   const remaining = useMemo(
     () => answers.reduce((list, a) => applyAnswer(list, a.question, a.value), all),
@@ -49,6 +66,9 @@ function PressingFinder({ candidates, onPick, onCantTell, loadingId }) {
   }, [remaining])
 
   const compare = remaining.length > 0 && remaining.length <= 4
+  const twinCounts = useMemo(() => lookAlikeCounts(remaining), [remaining])
+  const checks = useMemo(() => new Map(remaining.map((c) => [c.id, crossCheck(c, mb)])), [remaining, mb])
+  const allIdentical = remaining.length > 1 && twinCounts.size === remaining.length && new Set(remaining.map((c) => twinCounts.get(c.id))).size === 1 && twinCounts.get(remaining[0].id) === remaining.length - 1
 
   useEffect(() => {
     if (!compare) return
@@ -113,6 +133,13 @@ function PressingFinder({ candidates, onPick, onCantTell, loadingId }) {
         </div>
       )}
 
+      {allIdentical && (
+        <div className="mb-3 border border-border-strong rounded p-2.5 bg-bg">
+          <p className="m-0 text-[13px] font-semibold text-text">These can't be told apart from the outside</p>
+          <p className="m-0 mt-1 text-[12px] text-text-muted">They share the same year, country, label, catalog number and edition. The difference is the matrix / runout text etched into the smooth ring of vinyl between the grooves and the label. Take the record out, tilt it in the light, and compare it with the photos below. If you can't read it, choose "I can't tell" and the listing will be marked as not confirmed.</p>
+        </div>
+      )}
+
       {compare ? (
         <div className={`grid gap-2 ${remaining.length === 1 ? 'grid-cols-1' : 'grid-cols-2'}`}>
           {remaining.map((c) => {
@@ -129,7 +156,7 @@ function PressingFinder({ candidates, onPick, onCantTell, loadingId }) {
                   <p className="m-0 text-[13px] font-semibold text-text">{summary(c)}</p>
                   <p className="m-0 text-[12px] text-text-muted">{detail(c)}</p>
                   <Traits c={c} />
-                  <Badges c={c} popular={c.id === popularId} />
+                  <Badges c={c} popular={c.id === popularId} check={checks.get(c.id)} twins={twinCounts.get(c.id)} />
                 </div>
                 <button
                   type="button"
@@ -158,7 +185,7 @@ function PressingFinder({ candidates, onPick, onCantTell, loadingId }) {
                 <span className="block text-[13px] text-text">{summary(c)}</span>
                 <span className="block text-[12px] text-text-muted">{detail(c)}</span>
                 <Traits c={c} />
-                <Badges c={c} popular={c.id === popularId} />
+                <Badges c={c} popular={c.id === popularId} check={checks.get(c.id)} twins={twinCounts.get(c.id)} />
               </span>
             </button>
           ))}
