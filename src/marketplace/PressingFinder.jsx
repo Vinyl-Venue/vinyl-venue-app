@@ -8,7 +8,14 @@ function summary(c) {
   return [c.year, c.country].filter(Boolean).join(' \u00b7 ') || c.title
 }
 function detail(c) {
-  return [c.label, c.catno, c.format].filter(Boolean).join(' \u00b7 ')
+  return [c.label, c.catno].filter(Boolean).join(' \u00b7 ')
+}
+
+// The format words that tell look-alike pressings apart (Limited Edition, Stereo, Test Pressing…).
+function Traits({ c }) {
+  const t = [...c.tokens]
+  if (!t.length) return null
+  return <span className="block text-[12px] text-text mt-0.5">{t.join(' \u00b7 ')}</span>
 }
 
 function Badges({ c, popular }) {
@@ -121,6 +128,7 @@ function PressingFinder({ candidates, onPick, onCantTell, loadingId }) {
                 <div>
                   <p className="m-0 text-[13px] font-semibold text-text">{summary(c)}</p>
                   <p className="m-0 text-[12px] text-text-muted">{detail(c)}</p>
+                  <Traits c={c} />
                   <Badges c={c} popular={c.id === popularId} />
                 </div>
                 <button
@@ -148,7 +156,8 @@ function PressingFinder({ candidates, onPick, onCantTell, loadingId }) {
               <img src={c.thumb || PLACEHOLDER} alt="" className="w-10 h-10 object-cover rounded flex-shrink-0" />
               <span className="flex-1 min-w-0">
                 <span className="block text-[13px] text-text">{summary(c)}</span>
-                <span className="block text-[12px] text-text-muted truncate">{detail(c)}</span>
+                <span className="block text-[12px] text-text-muted">{detail(c)}</span>
+                <Traits c={c} />
                 <Badges c={c} popular={c.id === popularId} />
               </span>
             </button>
@@ -159,6 +168,10 @@ function PressingFinder({ candidates, onPick, onCantTell, loadingId }) {
             </button>
           )}
         </div>
+      )}
+
+      {remaining.some((c) => c.barcodeMatch) && (
+        <p className="m-0 mt-2 text-[11px] text-text-faint">Barcode match = this pressing lists the barcode you scanned. Other pressings of the album are shown too, since barcodes are often reused.</p>
       )}
 
       <button

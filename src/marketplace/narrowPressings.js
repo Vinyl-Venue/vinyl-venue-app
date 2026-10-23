@@ -18,10 +18,15 @@ export function parseCandidate(c) {
 export function labelCandidates(list) {
   const parsed = list.map(parseCandidate)
   const earliest = Math.min(...parsed.map((p) => p.yearNum || 9999))
-  return parsed.map((p) => ({
+  // Only call something "Original" when exactly one pressing carries the earliest
+  // year; several same-year pressings can't be told apart by year alone.
+  const atEarliest = parsed.filter((p) => !p.isReissue && p.yearNum === earliest).length
+  const labelled = parsed.map((p) => ({
     ...p,
-    kind: p.isReissue ? 'Reissue' : p.yearNum && p.yearNum === earliest ? 'Original' : null
+    kind: p.isReissue ? 'Reissue' : p.yearNum && p.yearNum === earliest && atEarliest === 1 ? 'Original' : null
   }))
+  // Pressings sharing the scanned barcode first, then oldest first.
+  return labelled.sort((a, b) => (b.barcodeMatch ? 1 : 0) - (a.barcodeMatch ? 1 : 0) || (a.yearNum || 9999) - (b.yearNum || 9999))
 }
 
 // How easy each kind of question is for someone holding the record.
