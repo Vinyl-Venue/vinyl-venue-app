@@ -6,7 +6,7 @@ const PLACEHOLDER = 'https://placehold.co/36x36/E4E2DC/E4E2DC'
 // Text input with live suggestions from the Discogs catalogue, narrowed by the
 // other field (typing an artist limits album titles, and a title limits artists).
 // Also offers matches already on the user's own shelf.
-function SmartField({ field, placeholder, value, onChange, otherValue, localSuggestions = [], onPickAlbum, onPickArtist }) {
+function SmartField({ field, placeholder, value, onChange, otherValue, otherPicked = false, localSuggestions = [], onPickAlbum, onPickArtist }) {
   const [open, setOpen] = useState(false)
   const [items, setItems] = useState([])
   const [loading, setLoading] = useState(false)
@@ -14,15 +14,17 @@ function SmartField({ field, placeholder, value, onChange, otherValue, localSugg
 
   useEffect(() => {
     const text = value.trim()
-    if (!open || text.length < 2) { setItems([]); setLoading(false); return undefined }
+    // When the other field was picked from the list, show everything that belongs to it even with nothing typed here yet.
+    const browse = otherPicked && otherValue.trim() !== ''
+    if (!open || (text.length < 2 && !browse)) { setItems([]); setLoading(false); return undefined }
     const mine = ++ticket.current
     setLoading(true)
     const t = setTimeout(async () => {
-      const { items: found } = await discogsSuggest(field, field === 'title' ? text : otherValue, field === 'artist' ? text : otherValue)
+      const { items: found } = await discogsSuggest(field, field === 'title' ? text : otherValue, field === 'artist' ? text : otherValue, otherPicked)
       if (ticket.current === mine) { setItems(found); setLoading(false) }
     }, 350)
     return () => clearTimeout(t)
-  }, [value, otherValue, field, open])
+  }, [value, otherValue, field, open, otherPicked])
 
   const v = value.trim().toLowerCase()
   const mine = v.length >= 1
@@ -35,7 +37,7 @@ function SmartField({ field, placeholder, value, onChange, otherValue, localSugg
     else onPickArtist?.(item)
   }
 
-  const show = open && v.length >= 1 && (items.length > 0 || mine.length > 0 || loading)
+  const show = open && (v.length >= 1 || otherPicked) && (items.length > 0 || mine.length > 0 || loading)
 
   return (
     <div className="relative">

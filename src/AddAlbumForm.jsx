@@ -90,6 +90,10 @@ function AddAlbumForm({
   const [albumHint, setAlbumHint] = useState(null)
   const [scanning, setScanning] = useState(false)
   const [scanNote, setScanNote] = useState('')
+  // Values chosen from the type-ahead list. While the field still holds that exact
+  // text, the other field is limited to what belongs to it.
+  const [pickedTitle, setPickedTitle] = useState('')
+  const [pickedArtist, setPickedArtist] = useState('')
   const [discogsFormat, setDiscogsFormat] = useState('Vinyl')
 
   useEffect(() => {
@@ -157,6 +161,8 @@ function AddAlbumForm({
     setSpecialTags([])
     setDiscogsResults([])
     setVersions([])
+    setPickedTitle('')
+    setPickedArtist('')
     setDiscogsError('')
   }
 
@@ -195,6 +201,8 @@ function AddAlbumForm({
   async function handlePickAlbum(item) {
     setTitle(item.title)
     setArtist(item.artist)
+    setPickedTitle(item.title)
+    setPickedArtist(item.artist)
     if (item.year && !year.trim()) setYear(String(item.year))
     setDiscogsResults([])
     setVersions([])
@@ -428,6 +436,7 @@ function AddAlbumForm({
           value={title}
           onChange={setTitle}
           otherValue={artist}
+          otherPicked={pickedArtist !== '' && artist === pickedArtist}
           localSuggestions={existingTitles}
           onPickAlbum={handlePickAlbum}
         />
@@ -437,10 +446,12 @@ function AddAlbumForm({
           value={artist}
           onChange={setArtist}
           otherValue={title}
+          otherPicked={pickedTitle !== '' && title === pickedTitle}
           localSuggestions={existingArtists}
           onPickAlbum={handlePickAlbum}
           onPickArtist={(it) => {
             setArtist(it.artist)
+            setPickedArtist(it.artist)
             if (it.masterId && it.title) handlePickAlbum({ ...it, kind: 'album' })
           }}
         />

@@ -255,8 +255,9 @@ export async function discogsSearch(title, artist, extra = {}) {
 // Photos and identifying details for one release (for side-by-side comparison).
 // Type-ahead from the Discogs catalogue. field is 'title' or 'artist'; the other
 // field narrows the results (e.g. an artist limits the album titles).
-export async function discogsSuggest(field, title, artist) {
+export async function discogsSuggest(field, title, artist, exact = false) {
   const params = new URLSearchParams({ field, title: title || '', artist: artist || '' })
+  if (exact) params.set('exact', '1')
   const { data, error } = await supabase.functions.invoke(`discogs-suggest?${params.toString()}`, { method: 'GET' })
   if (error || !data) return { items: [] }
   return { items: data.items || [] }

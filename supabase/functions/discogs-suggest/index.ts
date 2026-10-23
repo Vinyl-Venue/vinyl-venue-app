@@ -29,8 +29,12 @@ Deno.serve(async (req: Request) => {
   const field = url.searchParams.get('field') === 'artist' ? 'artist' : 'title'
   const title = (url.searchParams.get('title') || '').trim()
   const artist = (url.searchParams.get('artist') || '').trim()
+  // exact=1: the other field was picked from the list, so results must belong to it exactly.
+  const exact = url.searchParams.get('exact') === '1'
   const text = field === 'title' ? title : artist
-  if (text.length < 2) return json({ items: [] })
+  const other = field === 'title' ? artist : title
+  if (text.length < 2 && !(exact && other)) return json({ items: [] })
+  const norm = (s: string) => (s || '').toLowerCase().replace(/[^a-z0-9]/g, '')
 
   async function search(params: Record<string, string>) {
     const p = new URLSearchParams({ token, per_page: '20', ...params })
@@ -51,8 +55,9 @@ Deno.serve(async (req: Request) => {
     const params: Record<string, string> = { type: 'master' }
     if (title) params.release_title = title
     if (artist) params.artist = artist
+    if (exact) params.per_page = '50'
     let rows = await search(params)
-    if (rows.length === 0 && field === 'title') rows = await search({ type: 'master', q: title })
+    if (rows.length === 0 && field === 'title' && !exact) rows = await search({ type: 'master', q: title })
 
     const seen = new Set<string>()
     const albums: any[] = []
@@ -60,6 +65,9 @@ Deno.serve(async (req: Request) => {
       const { artist: a, title: t } = splitTitle(r.title)
       const key = `${a.toLowerCase()}|${t.toLowerCase()}`
       if (seen.has(key)) continue
+      // A picked artist only gets their own albums; a picked title only gets artists who made that exact title.
+      if (exact && field === 'title' && norm(a) !== norm(artist)) continue
+      if (exact && field === 'artist' && norm(t) !== norm(title)) continue
       seen.add(key)
       albums.push({
         kind: 'album',
