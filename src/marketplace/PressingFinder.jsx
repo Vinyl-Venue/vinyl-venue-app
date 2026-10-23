@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { discogsPreview } from '../utils'
-import { labelCandidates, bestQuestion, applyAnswer } from './pressingFinder'
+import { labelCandidates, bestQuestion, applyAnswer } from './narrowPressings'
 
 const PLACEHOLDER = 'https://placehold.co/80x80/E4E2DC/E4E2DC'
 
