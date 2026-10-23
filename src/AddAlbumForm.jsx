@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import AutocompleteInput from './AutocompleteInput'
 import { scanBarcodeFromFile } from './barcodeScan'
+import PressingFinder from './marketplace/PressingFinder'
 import SelectWithCustom from './SelectWithCustom'
 import SpecialTagsInput from './SpecialTagsInput'
 import { supabase } from './supabaseClient'
@@ -85,6 +86,7 @@ function AddAlbumForm({
   const [discogsLoadingId, setDiscogsLoadingId] = useState(null)
   const [discogsError, setDiscogsError] = useState('')
   const [versions, setVersions] = useState([])
+  const [albumHint, setAlbumHint] = useState(null)
   const [scanning, setScanning] = useState(false)
   const [scanNote, setScanNote] = useState('')
   const [discogsFormat, setDiscogsFormat] = useState('Vinyl')
@@ -110,7 +112,8 @@ function AddAlbumForm({
         discogsMasterId: editingAlbum.discogsMasterId || null,
         styles: editingAlbum.styles || '',
         discogsHave: editingAlbum.discogsHave ?? null,
-        discogsWant: editingAlbum.discogsWant ?? null
+        discogsWant: editingAlbum.discogsWant ?? null,
+        pressingStatus: editingAlbum.pressingStatus || ''
       })
       setCatalogNumber(editingAlbum.catalogNumber || '')
       setFormat(editingAlbum.format || '')
@@ -174,6 +177,32 @@ function AddAlbumForm({
     setImagePreviewUrl(URL.createObjectURL(file))
   }
 
+  // Pulls every vinyl pressing of the album the results belong to, for the
+  // guided finder. Returns how many pressings the results did not already cover.
+  async function loadVersions(results, tagBarcodeMatches) {
+    const masterIds = [...new Set(results.map((r) => r.masterId).filter(Boolean))]
+    if (masterIds.length !== 1) return 0
+    const { versions: all } = await discogsVersions(masterIds[0], discogsFormat)
+    const matched = new Set(results.map((r) => r.id))
+    setVersions(all.map((v) => ({ ...v, barcodeMatch: tagBarcodeMatches && matched.has(v.id) })))
+    setAlbumHint({ masterId: masterIds[0], name: results[0]?.title || '' })
+    return all.filter((v) => !matched.has(v.id)).length
+  }
+
+  // The seller can't tell which pressing: keep the album, mark the pressing unconfirmed.
+  function handleCantTell(cands) {
+    const hint = albumHint || {}
+    const [hintArtist, ...rest] = String(hint.name || '').split(' - ')
+    if (!artist.trim() && rest.length) setArtist(hintArtist.replace(/\s\(\d+\)$/, ''))
+    if (!title.trim()) setTitle(rest.length ? rest.join(' - ') : (cands[0]?.title || ''))
+    const years = cands.map((c) => parseInt(String(c.year || '').slice(0, 4), 10)).filter(Boolean)
+    if (!year.trim() && years.length) setYear(String(Math.min(...years)))
+    setDiscogsMeta({ discogsMasterId: hint.masterId || null, pressingStatus: 'unconfirmed' })
+    setDiscogsResults([])
+    setVersions([])
+    setScanNote('Saved at album level. The pressing will show as not confirmed until you pick one.')
+  }
+
   // Search Discogs by an exact barcode — usually lands on the right pressing.
   async function searchByBarcode(code) {
     setDiscogsSearching(true)
@@ -188,14 +217,7 @@ function AddAlbumForm({
     // A barcode often matches only some pressings (reissues reuse codes, and
     // older entries may have none), so also pull every vinyl pressing of the
     // album so the right one can be picked by year and country.
-    const masterId = results.find((r) => r.masterId)?.masterId
-    let more = 0
-    if (masterId) {
-      const { versions: all } = await discogsVersions(masterId, discogsFormat === '' ? '' : discogsFormat)
-      const matched = new Set(results.map((r) => r.id))
-      setVersions(all.map((v) => ({ ...v, barcodeMatch: matched.has(v.id) })))
-      more = all.filter((v) => !matched.has(v.id)).length
-    }
+    const more = await loadVersions(results, true)
     setScanNote(
       results.length === 0
         ? `Barcode ${code} isn't on Discogs for this format. Try searching by title and artist.`
@@ -259,7 +281,9 @@ function AddAlbumForm({
     setDiscogsResults(results)
     if (results.length === 0) {
       setDiscogsError('No matches found on Discogs.')
+      return
     }
+    await loadVersions(results, false)
   }
 
   async function handleSelectRelease(result) {
@@ -296,7 +320,8 @@ function AddAlbumForm({
       discogsMasterId: release.discogsMasterId || null,
       styles: release.styles || '',
       discogsHave: release.discogsHave ?? null,
-      discogsWant: release.discogsWant ?? null
+      discogsWant: release.discogsWant ?? null,
+      pressingStatus: 'confirmed'
     })
 
     if (release.coverImageUrl && !imageFile) {
@@ -430,7 +455,7 @@ function AddAlbumForm({
         </p>
       )}
 
-      {discogsResults.length > 0 && (
+      {discogsResults.length > 0 && versions.length === 0 && (
         <div className="flex flex-col gap-1.5 mb-3 max-w-xl max-h-80 overflow-y-auto">
           {discogsResults.map((result) => (
             <button
@@ -456,40 +481,13 @@ function AddAlbumForm({
               )}
 
       {versions.length > 0 && (
-        <div className="mb-3 max-w-xl">
-          <p className="font-sans text-xs text-text-muted m-0 mb-1.5">
-            All {versions.length} pressings of this album, oldest first
-          </p>
-          <div className="flex flex-col gap-1.5 max-h-80 overflow-y-auto">
-            {versions.map((result) => (
-              <button
-                key={result.id}
-                type="button"
-                onClick={() => handleSelectRelease(result)}
-                disabled={discogsLoadingId === result.id}
-                className="flex items-center gap-3 bg-surface border border-border rounded px-3 py-2 text-left cursor-pointer hover:border-accent disabled:opacity-60"
-              >
-                <img
-                  src={result.thumb || "https://placehold.co/40x40/1c1a15/a8a29a?text=%20"}
-                  alt=""
-                  className="w-10 h-10 object-cover rounded flex-shrink-0"
-                />
-                <span className="font-sans text-sm text-text flex-1">
-                  {[result.year, result.country].filter(Boolean).join(' · ') || result.title}
-                  <span className="text-text-muted text-xs block">
-                    {[result.label, result.catno, result.format].filter(Boolean).join(' · ')}
-                  </span>
-                </span>
-                {result.barcodeMatch && (
-                  <span className="text-[10px] font-mono tracking-wider uppercase text-accent border border-accent px-1.5 py-px flex-shrink-0">Barcode match</span>
-                )}
-                {discogsLoadingId === result.id && (
-                  <span className="text-text-muted text-xs">Loading...</span>
-                )}
-              </button>
-            ))}
-          </div>
-        </div>
+        <PressingFinder
+          key={albumHint?.masterId || 'finder'}
+          candidates={versions}
+          loadingId={discogsLoadingId}
+          onPick={handleSelectRelease}
+          onCantTell={handleCantTell}
+        />
       )}
             </button>
           ))}

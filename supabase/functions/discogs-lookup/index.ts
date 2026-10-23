@@ -160,9 +160,49 @@ Deno.serve(async (req: Request) => {
         country: x.country || '',
         label: x.label || '',
         catno: x.catno || '',
+        have: x.stats?.community?.in_collection ?? null,
+        want: x.stats?.community?.in_wantlist ?? null,
         masterId: Number(masterId)
       }))
       return new Response(JSON.stringify({ versions }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      })
+    }
+
+    if (action === 'preview') {
+      // Photos and identifying details for one release, so two look-alike
+      // pressings can be compared side by side.
+      const id = url.searchParams.get('id')
+      if (!id) {
+        return new Response(JSON.stringify({ error: 'Missing release id' }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        })
+      }
+      const res = await fetch(`https://api.discogs.com/releases/${id}?token=${token}`, { headers: discogsHeaders })
+      if (!res.ok) {
+        return new Response(JSON.stringify({ error: `Discogs preview failed (${res.status})` }), {
+          status: 502,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        })
+      }
+      const data = await res.json()
+      const preview = {
+        id: data.id,
+        images: (data.images || []).slice(0, 8).map((im: any) => ({
+          type: im.type || '',
+          thumb: im.uri150 || im.resource_url || '',
+          full: im.uri || im.resource_url || ''
+        })),
+        labels: (data.labels || []).map((l: any) => ({ name: l.name || '', catno: l.catno || '' })),
+        identifiers: (data.identifiers || []).slice(0, 12).map((i: any) => ({
+          type: i.type || '',
+          value: i.value || '',
+          description: i.description || ''
+        })),
+        notes: String(data.notes || '').slice(0, 600)
+      }
+      return new Response(JSON.stringify({ preview }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       })
     }
@@ -247,7 +287,7 @@ Deno.serve(async (req: Request) => {
       })
     }
 
-    return new Response(JSON.stringify({ error: 'Unknown action — use action=search, action=versions or action=release' }), {
+    return new Response(JSON.stringify({ error: 'Unknown action — use action=search, action=versions, action=preview or action=release' }), {
       status: 400,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     })

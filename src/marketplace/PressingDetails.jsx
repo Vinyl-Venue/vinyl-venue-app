@@ -26,12 +26,19 @@ function PressingDetails({ item, showCondition = true, notesLabel = 'Notes' }) {
   ].filter(([, v]) => v)
 
   const grades = showCondition && (item.sleeveCondition || item.mediaCondition)
+  const hasStatus = item.pressingStatus === 'confirmed' || item.pressingStatus === 'unconfirmed'
   const hasDiscogs = item.discogsReleaseId || item.discogsHave || item.discogsWant
-  if (chips.length === 0 && rows.length === 0 && styles.length === 0 && !hasDiscogs && !grades && !item.notes) return null
+  if (chips.length === 0 && rows.length === 0 && styles.length === 0 && !hasDiscogs && !hasStatus && !grades && !item.notes) return null
 
   return (
     <div className="mt-4 pt-4 border-t border-border font-sans">
       <p className="m-0 mb-2 font-mono text-[10px] tracking-wider uppercase text-text-faint">Pressing</p>
+      {item.pressingStatus === 'confirmed' && (
+        <p className="m-0 mb-2 text-[12px] text-[#4f7a56]">&#10003; Pressing confirmed</p>
+      )}
+      {item.pressingStatus === 'unconfirmed' && (
+        <p className="m-0 mb-2 text-[12px] text-text-muted">Pressing not confirmed. The seller couldn&rsquo;t tell which one this is, so check the details before you buy.</p>
+      )}
       {chips.length > 0 && (
         <div className="flex flex-wrap gap-1.5 mb-3">
           {chips.map((c) => (

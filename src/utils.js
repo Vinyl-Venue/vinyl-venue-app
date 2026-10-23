@@ -130,6 +130,7 @@ export function rowToListing(row) {
     styles: row.styles,
     discogsHave: row.discogs_have,
     discogsWant: row.discogs_want,
+    pressingStatus: row.pressing_status,
     price: row.price,
     listingType: row.listing_type,
     listingTypeLabel: LISTING_TYPE_LABELS[row.listing_type],
@@ -249,6 +250,14 @@ export async function discogsSearch(title, artist, extra = {}) {
   if (error) return { results: [], error: 'Discogs search failed — try again.' }
   if (data.error) return { results: [], error: data.error }
   return { results: data.results || [], error: null }
+}
+
+// Photos and identifying details for one release (for side-by-side comparison).
+export async function discogsPreview(id) {
+  const { data, error } = await supabase.functions.invoke(`discogs-lookup?action=preview&id=${id}`, { method: 'GET' })
+  if (error) return { preview: null, error: 'Could not load photos for that pressing.' }
+  if (data.error) return { preview: null, error: data.error }
+  return { preview: data.preview, error: null }
 }
 
 export async function discogsFetchRelease(id) {

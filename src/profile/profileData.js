@@ -26,6 +26,7 @@ export function rowToAlbum(row) {
     styles: row.styles,
     discogsHave: row.discogs_have,
     discogsWant: row.discogs_want,
+    pressingStatus: row.pressing_status,
     sleeveCondition: row.sleeve_condition,
     mediaCondition: row.media_condition,
     specialTags: row.special_tags || [],
@@ -92,7 +93,8 @@ const PRESSING_EXTRAS = [
   ['discogsMasterId', 'discogs_master_id'],
   ['styles', 'styles'],
   ['discogsHave', 'discogs_have'],
-  ['discogsWant', 'discogs_want']
+  ['discogsWant', 'discogs_want'],
+  ['pressingStatus', 'pressing_status']
 ]
 const NUMERIC_EXTRAS = new Set(['pressingYear', 'discogsReleaseId', 'discogsMasterId', 'discogsHave', 'discogsWant'])
 export function pressingExtrasToRow(source) {
