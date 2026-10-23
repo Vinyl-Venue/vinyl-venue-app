@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import AutocompleteInput from './AutocompleteInput'
+import SmartField from './SmartField'
 import { scanBarcodeFromFile } from './barcodeScan'
 import PressingFinder from './marketplace/PressingFinder'
 import SelectWithCustom from './SelectWithCustom'
@@ -187,6 +188,29 @@ function AddAlbumForm({
     setVersions(all.map((v) => ({ ...v, barcodeMatch: tagBarcodeMatches && matched.has(v.id) })))
     setAlbumHint({ masterId: masterIds[0], name: results[0]?.title || '' })
     return all.filter((v) => !matched.has(v.id)).length
+  }
+
+  // Picking an album from the type-ahead fills the basics and loads every
+  // vinyl pressing of it, so the guided finder can take over right away.
+  async function handlePickAlbum(item) {
+    setTitle(item.title)
+    setArtist(item.artist)
+    if (item.year && !year.trim()) setYear(String(item.year))
+    setDiscogsResults([])
+    setVersions([])
+    setScanNote('')
+    setDiscogsError('')
+    if (!item.masterId) return
+    setDiscogsSearching(true)
+    const { versions: all } = await discogsVersions(item.masterId, discogsFormat)
+    setDiscogsSearching(false)
+    if (!all || all.length === 0) {
+      setDiscogsError('No pressings found for that album on Discogs. You can still fill in the details by hand.')
+      return
+    }
+    setVersions(all.map((v) => ({ ...v, barcodeMatch: false })))
+    setAlbumHint({ masterId: item.masterId, name: `${item.artist} - ${item.title}` })
+    setScanNote(`${all.length} pressing${all.length === 1 ? '' : 's'} of this album found. Answer the questions below to pick yours.`)
   }
 
   // The seller can't tell which pressing: keep the album, mark the pressing unconfirmed.
@@ -391,21 +415,34 @@ function AddAlbumForm({
   }
 
   const subgenreOptions = SUBGENRE_MAP[genre] || []
+  // Once an album's pressings are loaded, suggest only labels and countries that exist for it.
+  const albumLabels = [...new Set(versions.map((v) => v.label).filter(Boolean))]
+  const albumCountries = [...new Set(versions.map((v) => v.country).filter(Boolean))]
 
   return (
     <form className="mb-6" onSubmit={handleSubmit}>
       <div className="flex gap-2.5 items-center mb-2.5 flex-wrap">
-        <AutocompleteInput
+        <SmartField
+          field="title"
           placeholder="Album title"
           value={title}
           onChange={setTitle}
-          suggestions={existingTitles}
+          otherValue={artist}
+          localSuggestions={existingTitles}
+          onPickAlbum={handlePickAlbum}
         />
-        <AutocompleteInput
+        <SmartField
+          field="artist"
           placeholder="Artist"
           value={artist}
           onChange={setArtist}
-          suggestions={existingArtists}
+          otherValue={title}
+          localSuggestions={existingArtists}
+          onPickAlbum={handlePickAlbum}
+          onPickArtist={(it) => {
+            setArtist(it.artist)
+            if (it.masterId && it.title) handlePickAlbum({ ...it, kind: 'album' })
+          }}
         />
         <input
           type="number"
@@ -515,13 +552,13 @@ function AddAlbumForm({
           placeholder="Label"
           value={label}
           onChange={setLabel}
-          suggestions={existingLabels}
+          suggestions={albumLabels.length ? albumLabels : existingLabels}
         />
         <AutocompleteInput
           placeholder="Pressing country"
           value={pressingCountry}
           onChange={setPressingCountry}
-          suggestions={existingPressingCountries}
+          suggestions={albumCountries.length ? albumCountries : existingPressingCountries}
         />
         <input
           type="text"
