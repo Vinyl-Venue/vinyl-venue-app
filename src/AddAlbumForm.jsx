@@ -480,6 +480,11 @@ function AddAlbumForm({
                 <span className="text-text-muted text-xs">Loading...</span>
               )}
 
+            </button>
+          ))}
+        </div>
+      )}
+
       {versions.length > 0 && (
         <PressingFinder
           key={albumHint?.masterId || 'finder'}
@@ -488,10 +493,6 @@ function AddAlbumForm({
           onPick={handleSelectRelease}
           onCantTell={handleCantTell}
         />
-      )}
-            </button>
-          ))}
-        </div>
       )}
 
       <div className="flex gap-2.5 items-center mb-2.5 flex-wrap">
