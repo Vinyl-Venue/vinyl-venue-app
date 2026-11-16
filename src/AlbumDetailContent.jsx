@@ -4,6 +4,7 @@ import { useAuth } from './AuthContext'
 import { discogsSearch, discogsFetchRelease } from './utils'
 import ListingPhotoUploader from './ListingPhotoUploader'
 import PressingDetails from './marketplace/PressingDetails'
+import MarketPanel, { PriceSuggestion } from './marketplace/MarketPanel'
 import { pressingExtrasToRow } from './profile/profileData'
 
 const PLACEHOLDER_COVER = "https://placehold.co/500x500/E4E2DC/E4E2DC"
@@ -520,6 +521,7 @@ function AlbumDetailContent({ album, onClose, isOwnAlbum = false }) {
           {hasPressingDetails && (
             <>
               <PressingDetails item={album} showCondition={false} notesLabel="Notes" />
+              <MarketPanel item={{ ...album, mediaCondition: localMediaCondition || album.mediaCondition }} />
               {album.specialTags && album.specialTags.length > 0 && (
                 <p className="font-sans text-sm text-text-muted mt-3 mb-0"><strong className="text-text">Special:</strong> {album.specialTags.join(', ')}</p>
               )}
@@ -656,6 +658,7 @@ function AlbumDetailContent({ album, onClose, isOwnAlbum = false }) {
                       <option value="auction">Auction</option>
                     </select>
                   </div>
+                  <PriceSuggestion item={{ ...album, mediaCondition: localMediaCondition || album.mediaCondition }} onUse={setPrice} />
                   <input
                     type="number"
                     min="0"
