@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import Header from './Header'
 import { supabase } from './supabaseClient'
 import { useAuth } from './AuthContext'
+import { formatStamp } from './utils'
 
 function MessagesInboxPage() {
   const { user } = useAuth()
@@ -116,11 +117,14 @@ function MessagesInboxPage() {
                   <p className="m-0 text-xs text-text-muted mt-1 truncate max-w-md">{c.lastBody}</p>
                 </div>
               </div>
-              {c.unreadCount > 0 && (
-                <span className="bg-accent text-bg text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center flex-shrink-0">
-                  {c.unreadCount}
-                </span>
-              )}
+              <div className="flex flex-col items-end gap-1 flex-shrink-0 ml-3">
+                <span className="font-sans text-[11px] text-text-faint whitespace-nowrap">{formatStamp(c.lastCreatedAt)}</span>
+                {c.unreadCount > 0 && (
+                  <span className="bg-accent text-bg text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
+                    {c.unreadCount}
+                  </span>
+                )}
+              </div>
             </Link>
           ))}
         </div>

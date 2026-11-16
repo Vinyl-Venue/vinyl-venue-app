@@ -3,7 +3,7 @@ import { useParams, Link } from 'react-router-dom'
 import Header from './Header'
 import { supabase } from './supabaseClient'
 import { useAuth } from './AuthContext'
-import { timeAgo, displayNameFor, avatarPlaceholder } from './utils'
+import { timeAgo, formatStamp, displayNameFor, avatarPlaceholder } from './utils'
 
 function BoardTopicPage() {
   const { postId } = useParams()
@@ -151,7 +151,7 @@ function BoardTopicPage() {
               />
               <div className="font-sans">
                 <p className="m-0 text-sm font-bold">{displayNameFor(profilesById[topic.user_id])}</p>
-                <p className="m-0 text-xs text-text-muted">{timeAgo(topic.created_at)}</p>
+                <p className="m-0 text-xs text-text-muted" title={timeAgo(topic.created_at)}>{formatStamp(topic.created_at)}</p>
               </div>
             </div>
             <h2 className="text-xl font-serif m-0 mb-2">{topic.title}</h2>
@@ -170,7 +170,7 @@ function BoardTopicPage() {
                   <span className="font-sans text-xs font-bold text-text">
                     {displayNameFor(profilesById[reply.user_id])}
                   </span>
-                  <span className="font-sans text-xs text-text-muted">{timeAgo(reply.created_at)}</span>
+                  <span className="font-sans text-xs text-text-muted" title={timeAgo(reply.created_at)}>{formatStamp(reply.created_at)}</span>
                 </div>
                 <p className="font-sans text-sm text-text m-0">{reply.body}</p>
               </div>

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { supabase } from './supabaseClient'
 import TrustedBadge from './TrustedBadge'
 import { isTrustedSeller } from './sellerTrust'
+import { formatStamp } from './utils'
 
 function StarDisplay({ rating }) {
   return (
@@ -66,7 +67,7 @@ function ReviewsSection({ sellerId }) {
           <div key={review.id} className="bg-surface border border-border rounded px-4 py-3">
             <div className="flex items-center justify-between">
               <StarDisplay rating={review.rating} />
-              <span className="text-text-muted text-xs">{review.profiles?.display_name || 'Someone'}</span>
+              <span className="text-text-muted text-xs">{review.profiles?.display_name || 'Someone'} · {formatStamp(review.created_at)}</span>
             </div>
             {review.body && <p className="text-sm text-text mt-1.5 mb-0">{review.body}</p>}
           </div>

@@ -36,6 +36,23 @@ export function timeAgo(dateString) {
   return `${Math.floor(days / 7)}w ago`
 }
 
+// Exact date and time for messages and comments: "Today, 1:23 PM", "Yesterday, 4:05 PM",
+// "Nov 12, 1:23 PM", or with the year when it isn't this year.
+export function formatStamp(dateString) {
+  if (!dateString) return ''
+  const d = new Date(dateString)
+  if (Number.isNaN(d.getTime())) return ''
+  const time = d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
+  const now = new Date()
+  const startOfDay = (x) => new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime()
+  const dayDiff = Math.round((startOfDay(now) - startOfDay(d)) / 86400000)
+  if (dayDiff === 0) return `Today, ${time}`
+  if (dayDiff === 1) return `Yesterday, ${time}`
+  const sameYear = d.getFullYear() === now.getFullYear()
+  const date = d.toLocaleDateString([], sameYear ? { month: 'short', day: 'numeric' } : { month: 'short', day: 'numeric', year: 'numeric' })
+  return `${date}, ${time}`
+}
+
 // ---------- Album/title matching ----------
 
 export function matchKey(title, artist) {

@@ -3,6 +3,7 @@ import { Link, useParams, useSearchParams } from 'react-router-dom'
 import Header from './Header'
 import { supabase } from './supabaseClient'
 import { useAuth } from './AuthContext'
+import { formatStamp } from './utils'
 
 function MessageThreadPage() {
   const { userId: otherId } = useParams()
@@ -160,7 +161,10 @@ function MessageThreadPage() {
                       isMine ? 'bg-accent text-bg self-end' : 'bg-bg text-text self-start'
                     }`}
                   >
-                    {m.body}
+                    <div className="whitespace-pre-wrap break-words">{m.body}</div>
+                    <div className={`text-[10px] mt-1 ${isMine ? 'text-bg/70 text-right' : 'text-text-faint'}`}>
+                      {formatStamp(m.created_at)}
+                    </div>
                   </div>
                 )
               })}
