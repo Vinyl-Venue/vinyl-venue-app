@@ -55,3 +55,10 @@ export function money(value, currency = 'USD') {
   if (!Number.isFinite(n)) return ''
   return n.toLocaleString(undefined, { style: 'currency', currency, minimumFractionDigits: n % 1 === 0 ? 0 : 2 })
 }
+
+// What this exact pressing has sold for on Vinyl Venue: { avg_sold, sales }. avg_sold is null under 3 sales.
+export async function loadPressingPrice(discogsReleaseId) {
+  if (!discogsReleaseId) return null
+  const { data, error } = await supabase.rpc('pressing_price', { rid: Number(discogsReleaseId) })
+  return error ? null : data
+}

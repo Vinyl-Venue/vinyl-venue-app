@@ -1,0 +1,4 @@
+-- ALREADY APPLIED to the vinyl-venue project (migration: pressing_price_stats). Record only.
+-- pressing_price_averages() -> per Discogs release id: detail-weighted average sold price, 3+ sales in 12 months.
+-- pressing_price(rid)       -> {avg_sold, sales} for one pressing; avg_sold is null under 3 sales.
+-- Used by: listing price suggestion, pricing check, and the deal badge (priceStats.js).

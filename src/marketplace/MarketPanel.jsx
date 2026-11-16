@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useAuth } from '../AuthContext'
-import { loadMarket, loadVenueIndex, loadVenueBreakdown, checkIsAdmin, suggestedPriceFor, money } from './marketData'
+import { loadMarket, loadPressingPrice, loadVenueIndex, loadVenueBreakdown, checkIsAdmin, suggestedPriceFor, money } from './marketData'
 import { scoreRarity } from './rarity'
 
 // What the panel shows once the data is in. Kept separate from the loading so it can be tested on its own.
@@ -21,9 +21,11 @@ function VenueBreakdown({ data }) {
           </li>
         ))}
       </ul>
+      <p className="m-0 mb-1 text-text-muted">
+        Raw {i.raw_score} &rarr; score {data.score}. Each record is weighted by how much pressing detail it carries (average detail {i.avg_detail}, information factor {i.info_factor}). With thin detail the score is pulled toward a neutral 40: 40 + (raw &minus; 40) &times; factor. Confidence {data.confidence}.
+      </p>
       <p className="m-0 text-text-muted">
-        Score {data.score} = 100 &times; points earned &divide; points available. Confidence {data.confidence}.
-        Community size {i.community}, owners {i.owners}, wanters {i.wanters}, sales 12m {i.sales_12m}, sales 90d {i.sales_90d}, Discogs lowest {i.discogs_lowest ?? 'n/a'}.
+        Community {i.community} &middot; owners {i.owners} (weighted {i.owners_weighted}) &middot; wants for album {i.wants_for_album}, matching this pressing {i.wants_matching_pressing} (weighted {i.weighted_wants}) &middot; sales 12m {i.sales_12m} &middot; Discogs lowest {i.discogs_lowest ?? 'n/a'}.
       </p>
     </div>
   )
@@ -133,22 +135,37 @@ export default MarketPanel
 // Shown under the Price field when listing: a Discogs-based starting price the seller can accept with one tap.
 export function PriceSuggestion({ item, onUse }) {
   const [market, setMarket] = useState(null)
+  const [platform, setPlatform] = useState(null)
   const id = item?.discogsReleaseId
   useEffect(() => {
     let cancelled = false
-    setMarket(null)
-    if (id) loadMarket(id).then((m) => { if (!cancelled) setMarket(m) })
+    setMarket(null); setPlatform(null)
+    if (id) {
+      loadMarket(id).then((m) => { if (!cancelled) setMarket(m) })
+      loadPressingPrice(id).then((p) => { if (!cancelled) setPlatform(p) })
+    }
     return () => { cancelled = true }
   }, [id])
   if (!id || !market) return null
-  return <PriceSuggestionView item={item} market={market} onUse={onUse} />
+  return <PriceSuggestionView item={item} market={market} platform={platform} onUse={onUse} />
 }
 
-export function PriceSuggestionView({ item, market, onUse }) {
+export function PriceSuggestionView({ item, market, platform = null, onUse }) {
+  // Best anchor first: what this exact pressing sold for here, then Discogs' grade suggestion, then the lowest ask.
   const suggested = suggestedPriceFor(market, item.mediaCondition)
-  const value = suggested ?? market.lowest_price
+  let value = null
+  let label = ''
+  if (platform?.avg_sold != null) {
+    value = platform.avg_sold
+    label = `Suggested: ${money(value, 'USD')} (avg of ${platform.sales} sales of this pressing here)`
+  } else if (suggested != null) {
+    value = suggested
+    label = `Suggested: ${money(value, market.currency)} for ${item.mediaCondition} (Discogs)`
+  } else if (market.lowest_price != null) {
+    value = market.lowest_price
+    label = `Lowest ask on Discogs: ${money(value, market.currency)}`
+  }
   if (value == null) return null
-  const label = suggested != null ? `Suggested: ${money(value, market.currency)} for ${item.mediaCondition} (Discogs)` : `Lowest ask on Discogs: ${money(value, market.currency)}`
   return (
     <div className="flex items-center gap-2 mb-2.5 text-[12px] text-text-muted">
       <span>{label}</span>

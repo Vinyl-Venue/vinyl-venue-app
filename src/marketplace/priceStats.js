@@ -7,8 +7,11 @@ const norm = (s) => (s || '').toLowerCase().replace(/[^a-z0-9]/g, '')
 // Returns an empty map if the function isn't there yet.
 export async function loadPriceAverages() {
   const { data, error } = await supabase.rpc('market_price_averages')
-  if (error) return new Map()
-  return new Map((data || []).map((r) => [`${r.norm_title}|${r.norm_artist}`, { avg: Number(r.avg_price), count: r.sample_count }]))
+  const map = new Map(error ? [] : (data || []).map((r) => [`${r.norm_title}|${r.norm_artist}`, { avg: Number(r.avg_price), count: r.sample_count }]))
+  // Per-pressing averages (3+ sales of the exact pressing), keyed by Discogs release id.
+  const { data: byPressing } = await supabase.rpc('pressing_price_averages')
+  for (const r of byPressing || []) map.set(`rid:${r.discogs_release_id}`, { avg: Number(r.avg_price), count: r.sample_count })
+  return map
 }
 
 // Percent below the average sold price, or null when there's no reliable
@@ -16,7 +19,10 @@ export async function loadPriceAverages() {
 export function dealPercent(listing, averages) {
   if (!averages || averages.size === 0) return null
   if (listing.listingType === 'auction' || listing.listingType === 'trade') return null
-  const stat = averages.get(`${norm(listing.title)}|${norm(listing.artist)}`)
+  // A listing that identifies its pressing is compared with that pressing only, never the album average.
+  const stat = listing.discogsReleaseId
+    ? averages.get(`rid:${listing.discogsReleaseId}`)
+    : averages.get(`${norm(listing.title)}|${norm(listing.artist)}`)
   const price = Number(listing.price)
   if (!stat || !price || !stat.avg) return null
   const pct = Math.round((1 - price / stat.avg) * 100)
