@@ -1,9 +1,35 @@
 import { useEffect, useState } from 'react'
-import { loadMarket, suggestedPriceFor, money } from './marketData'
+import { useAuth } from '../AuthContext'
+import { loadMarket, loadVenueIndex, loadVenueBreakdown, checkIsAdmin, suggestedPriceFor, money } from './marketData'
 import { scoreRarity } from './rarity'
 
 // What the panel shows once the data is in. Kept separate from the loading so it can be tested on its own.
-export function MarketView({ item, market, showSuggestion = true }) {
+const VENUE_TONES = { Hot: '#c1666b', Rising: '#b8863b', Steady: '#4f7a56', Quiet: '#8a8a8a' }
+
+// Admin-only: every input and point behind the Venue Index. The data itself only comes back for admins.
+function VenueBreakdown({ data }) {
+  if (!data) return <p className="m-0 mt-2 text-[12px] text-text-muted">Breakdown unavailable.</p>
+  const i = data.inputs || {}
+  return (
+    <div className="mt-2 p-3 border border-dashed border-border-strong rounded text-[12px]">
+      <p className="m-0 mb-2 font-mono text-[10px] tracking-wider uppercase text-text-faint">Admin only &middot; how this is calculated</p>
+      <ul className="m-0 mb-2 p-0 list-none flex flex-col gap-1.5">
+        {(data.parts || []).map((p) => (
+          <li key={p.key}>
+            <div className="flex justify-between text-text"><span>{p.label}</span><span className="text-text-muted">{p.points == null ? 'not scored' : `${p.points} / ${p.max}`}</span></div>
+            <div className="text-text-muted">{p.note}</div>
+          </li>
+        ))}
+      </ul>
+      <p className="m-0 text-text-muted">
+        Score {data.score} = 100 &times; points earned &divide; points available. Confidence {data.confidence}.
+        Community size {i.community}, owners {i.owners}, wanters {i.wanters}, sales 12m {i.sales_12m}, sales 90d {i.sales_90d}, Discogs lowest {i.discogs_lowest ?? 'n/a'}.
+      </p>
+    </div>
+  )
+}
+
+export function MarketView({ item, market, showSuggestion = true, venue = null, isAdmin = false, breakdown = null }) {
   const rarity = scoreRarity(item, market)
   const suggestion = showSuggestion ? suggestedPriceFor(market, item.mediaCondition) : null
   const [open, setOpen] = useState(false)
@@ -21,6 +47,20 @@ export function MarketView({ item, market, showSuggestion = true }) {
           {open ? 'Hide breakdown' : 'How is this scored?'}
         </button>
       </div>
+      {venue && (
+        <div className="flex items-center gap-3 mb-2">
+          {venue.enough ? (
+            <>
+              <span className="text-[11px] font-mono tracking-wider uppercase px-2 py-0.5 border" style={{ color: VENUE_TONES[venue.tier], borderColor: VENUE_TONES[venue.tier] }}>Venue: {venue.tier}</span>
+              <span className="text-[13px] text-text">{venue.score}<span className="text-text-faint">/100</span></span>
+              <span className="text-[12px] text-text-muted">based on member activity</span>
+            </>
+          ) : (
+            <span className="text-[12px] text-text-muted">Venue Index: not enough member activity yet.</span>
+          )}
+        </div>
+      )}
+      {isAdmin && venue && <VenueBreakdown data={breakdown} />}
       {rarity.limited && (
         <p className="m-0 mb-2 text-[12px] text-text-muted">Based on edition and age only. No Discogs numbers were available for this pressing.</p>
       )}
@@ -54,19 +94,38 @@ export function MarketView({ item, market, showSuggestion = true }) {
 // Fetches the market snapshot for the pressing, then renders it. Shows rarity
 // from the item's own numbers while the market data loads (or if it never does).
 function MarketPanel({ item, showSuggestion = true }) {
+  const { user } = useAuth()
   const [market, setMarket] = useState(null)
+  const [venue, setVenue] = useState(null)
+  const [isAdmin, setIsAdmin] = useState(false)
+  const [breakdown, setBreakdown] = useState(null)
   const id = item?.discogsReleaseId
 
   useEffect(() => {
     let cancelled = false
-    setMarket(null)
-    if (id) loadMarket(id).then((m) => { if (!cancelled) setMarket(m) })
+    setMarket(null); setVenue(null); setBreakdown(null)
+    if (id) {
+      loadMarket(id).then((m) => { if (!cancelled) setMarket(m) })
+      loadVenueIndex(id).then((v) => { if (!cancelled) setVenue(v) })
+    }
     return () => { cancelled = true }
   }, [id])
 
+  // The breakdown is only requested for admins, and the database refuses everyone else regardless.
+  useEffect(() => {
+    let cancelled = false
+    setIsAdmin(false)
+    checkIsAdmin(user?.id).then((ok) => {
+      if (cancelled || !ok) return
+      setIsAdmin(true)
+      if (id) loadVenueBreakdown(id).then((b) => { if (!cancelled) setBreakdown(b) })
+    })
+    return () => { cancelled = true }
+  }, [user?.id, id])
+
   // Nothing identifies this pressing on Discogs, so there is nothing trustworthy to show.
   if (!id) return null
-  return <MarketView item={item} market={market} showSuggestion={showSuggestion} />
+  return <MarketView item={item} market={market} showSuggestion={showSuggestion} venue={venue} isAdmin={isAdmin} breakdown={breakdown} />
 }
 
 export default MarketPanel

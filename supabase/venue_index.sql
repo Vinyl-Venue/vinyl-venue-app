@@ -1,0 +1,9 @@
+-- Venue Index: platform-only demand/scarcity/price score per pressing.
+-- ALREADY APPLIED to the vinyl-venue project. Kept here as a record.
+-- venue_index(rid)           -> {enough, score, tier, confidence}  (any signed-in user)
+-- venue_index_breakdown(rid) -> full inputs and points             (admins only, enforced in the database)
+-- venue_index_calc(rid)      -> internal, not callable from the app
+-- Weights: member demand 40, member scarcity 25, platform price signal 25, recent sales 10.
+-- Components without enough data (fewer than 3 sales in 12 months) are left out and the score rescales.
+-- Tiers: Hot 75+, Rising 55-74, Steady 35-54, Quiet below 35.
+-- Full function bodies: see Supabase > Database > Functions, or the migration named venue_index.

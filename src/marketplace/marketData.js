@@ -18,7 +18,29 @@ export async function loadMarket(discogsReleaseId) {
   if (!discogsReleaseId) return null
   const { data, error } = await supabase.functions.invoke(`discogs-market?id=${discogsReleaseId}`, { method: 'GET' })
   if (error || !data?.market) return null
-  return data.market
+  const m = data.market
+  // Discogs reports 0 when nothing is for sale; that's "no ask", not a free record.
+  return { ...m, lowest_price: Number(m.lowest_price) > 0 ? m.lowest_price : null }
+}
+
+// Platform-only score from member activity. Public: tier and score, never the inputs.
+export async function loadVenueIndex(discogsReleaseId) {
+  if (!discogsReleaseId) return null
+  const { data, error } = await supabase.rpc('venue_index', { rid: Number(discogsReleaseId) })
+  return error ? null : data
+}
+
+// Full breakdown. The database only answers admins; anyone else gets an error and we return null.
+export async function loadVenueBreakdown(discogsReleaseId) {
+  if (!discogsReleaseId) return null
+  const { data, error } = await supabase.rpc('venue_index_breakdown', { rid: Number(discogsReleaseId) })
+  return error ? null : data
+}
+
+export async function checkIsAdmin(userId) {
+  if (!userId) return false
+  const { data } = await supabase.from('admins').select('user_id').eq('user_id', userId).maybeSingle()
+  return !!data
 }
 
 // Discogs' suggested price for a media condition, or null when Discogs gave none.
