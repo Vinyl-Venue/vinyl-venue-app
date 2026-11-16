@@ -4,6 +4,8 @@
 // and the rest are rescaled, so a pressing with thin data isn't unfairly
 // scored as common. `confidence` says how much of the picture was available.
 
+import { detectMarkings } from './pressingMarkings'
+
 const clamp = (n, lo, hi) => Math.min(hi, Math.max(lo, n))
 
 export const RARITY_TIERS = [
@@ -73,6 +75,13 @@ export function scoreRarity(item, market = null) {
 
   const traits = traitScore(item)
   parts.push({ key: 'edition', label: 'Edition', points: traits.points, max: 12, note: traits.found.length ? traits.found.join(', ') : 'Standard edition' })
+
+  // Markings the collector recorded (hand-etched message, mastering engineer mark). Only counted when
+  // they entered runout or notes text, so an empty field never lowers a score.
+  const markings = detectMarkings(item)
+  if (markings.hasText) {
+    parts.push({ key: 'markings', label: 'Markings', points: Math.min(6, markings.points), max: 6, note: markings.found.length ? markings.found.join(', ') : 'No notable markings noted' })
+  }
 
   if (year) {
     const pts = isReissue ? 0 : year <= 1979 ? 8 : year <= 1989 ? 6 : year <= 1999 ? 4 : year <= 2009 ? 2 : 0

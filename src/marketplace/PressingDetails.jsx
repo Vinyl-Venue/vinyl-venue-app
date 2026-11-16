@@ -1,4 +1,34 @@
+import { useEffect, useState } from 'react'
 import { pressingSignature } from './pressings'
+import { discogsPreview } from '../utils'
+import { compareMarkings } from './pressingMarkings'
+
+// Looked up once per pressing per page load.
+const identifierCache = new Map()
+
+// Compares the matrix / runout the owner entered with what Discogs lists for the pressing.
+function MarkingsCheck({ item }) {
+  const id = item.discogsReleaseId
+  const [result, setResult] = useState(null)
+  const hasText = !!(item.matrixNumber || item.deadwax)
+
+  useEffect(() => {
+    let cancelled = false
+    setResult(null)
+    if (!id || !hasText) return undefined
+    const load = identifierCache.has(id)
+      ? Promise.resolve(identifierCache.get(id))
+      : discogsPreview(id).then(({ preview }) => { const ids = preview?.identifiers || null; if (ids) identifierCache.set(id, ids); return ids })
+    load.then((ids) => { if (!cancelled && ids) setResult(compareMarkings(item, ids)) })
+    return () => { cancelled = true }
+  }, [id, item.matrixNumber, item.deadwax, hasText])
+
+  if (!result) return null
+  if (result.status === 'match') return <p className="m-0 mb-2 text-[12px] text-[#4f7a56]">&#10003; Runout matches the Discogs listing</p>
+  if (result.status === 'partial') return <p className="m-0 mb-2 text-[12px] text-text-muted">Runout partly matches the Discogs listing ({result.matched.length} of {result.total} marks found)</p>
+  if (result.status === 'mismatch') return <p className="m-0 mb-2 text-[12px] text-[#b7791f]">Runout doesn&rsquo;t match the Discogs listing. Double-check this is the right pressing.</p>
+  return null
+}
 
 // Discogs-style identification block: highlight chips for the things that
 // tell pressings apart, a labelled table of the details, then any notes.
@@ -36,6 +66,7 @@ function PressingDetails({ item, showCondition = true, notesLabel = 'Notes' }) {
       {item.pressingStatus === 'confirmed' && (
         <p className="m-0 mb-2 text-[12px] text-[#4f7a56]">&#10003; Pressing confirmed</p>
       )}
+      <MarkingsCheck item={item} />
       {item.pressingStatus === 'unconfirmed' && (
         <p className="m-0 mb-2 text-[12px] text-text-muted">Pressing not confirmed. The seller couldn&rsquo;t tell which one this is, so check the details before you buy.</p>
       )}
