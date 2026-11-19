@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useAuth } from '../AuthContext'
-import { loadMarket, loadPressingPrice, loadVenueIndex, loadVenueBreakdown, checkIsAdmin, suggestedPriceFor, money, loadGradeStats, gradeRow } from './marketData'
+import { loadMarket, loadPressingPrice, loadVenueIndex, loadVenueBreakdown, checkIsAdmin, suggestedPriceFor, money, loadGradeStats, gradeRow, venueArgs } from './marketData'
 import { scoreRarity } from './rarity'
 import GradePriceTable from './GradePriceTable'
 
@@ -24,6 +24,9 @@ function VenueBreakdown({ data }) {
       </ul>
       <p className="m-0 mb-1 text-text-muted">
         Raw {i.raw_score} &rarr; score {data.score}. Each record is weighted by how much pressing detail it carries (average detail {i.avg_detail}, information factor {i.info_factor}). With thin detail the score is pulled toward a neutral 40: 40 + (raw &minus; 40) &times; factor. Confidence {data.confidence}.
+      </p>
+      <p className="m-0 text-text-muted">
+        Compared against {i.pressings_compared} pressings &middot; owner percentile {i.owner_percentile} &middot; demand percentile {i.demand_percentile}.
       </p>
       <p className="m-0 text-text-muted">
         Community {i.community} &middot; owners {i.owners} (weighted {i.owners_weighted}) &middot; wants for album {i.wants_for_album}, matching this pressing {i.wants_matching_pressing} (weighted {i.weighted_wants}) &middot; sales 12m {i.sales_12m} &middot; Discogs lowest {i.discogs_lowest ?? 'n/a'}.
@@ -116,10 +119,10 @@ function MarketPanel({ item, showSuggestion = true }) {
         setMarket(m)
         loadGradeStats(id).then((g) => { if (!cancelled) setGradeStats(g) })
       })
-      loadVenueIndex(id).then((v) => { if (!cancelled) setVenue(v) })
     }
+    loadVenueIndex(item).then((v) => { if (!cancelled) setVenue(v) })
     return () => { cancelled = true }
-  }, [id])
+  }, [id, item?.title, item?.artist, item?.catalogNumber])
 
   // The breakdown is only requested for admins, and the database refuses everyone else regardless.
   useEffect(() => {
@@ -128,13 +131,33 @@ function MarketPanel({ item, showSuggestion = true }) {
     checkIsAdmin(user?.id).then((ok) => {
       if (cancelled || !ok) return
       setIsAdmin(true)
-      if (id) loadVenueBreakdown(id).then((b) => { if (!cancelled) setBreakdown(b) })
+      loadVenueBreakdown(item).then((b) => { if (!cancelled) setBreakdown(b) })
     })
     return () => { cancelled = true }
-  }, [user?.id, id])
+  }, [user?.id, id, item?.title, item?.artist, item?.catalogNumber])
 
-  // Nothing identifies this pressing on Discogs, so there is nothing trustworthy to show.
-  if (!id) return null
+  // Without a Discogs release there is no market or rarity to show, but a pressing identified by
+  // its catalogue number still gets a Venue Index (member activity only).
+  if (!id) {
+    if (!venueArgs(item) || !venue) return null
+    return (
+      <div className="mt-4 pt-4 border-t border-border font-sans">
+        <p className="m-0 mb-2 font-mono text-[10px] tracking-wider uppercase text-text-faint">Venue Index</p>
+        <div className="flex items-center gap-3 mb-2">
+          {venue.enough ? (
+            <>
+              <span className="text-[11px] font-mono tracking-wider uppercase px-2 py-0.5 border" style={{ color: VENUE_TONES[venue.tier], borderColor: VENUE_TONES[venue.tier] }}>Venue: {venue.tier}</span>
+              <span className="text-[13px] text-text">{venue.score}<span className="text-text-faint">/100</span></span>
+              <span className="text-[12px] text-text-muted">based on member activity</span>
+            </>
+          ) : (
+            <span className="text-[12px] text-text-muted">Venue Index: not enough member activity yet.</span>
+          )}
+        </div>
+        {isAdmin && <VenueBreakdown data={breakdown} />}
+      </div>
+    )
+  }
   return <MarketView item={item} market={market} showSuggestion={showSuggestion} venue={venue} isAdmin={isAdmin} breakdown={breakdown} gradeStats={gradeStats} />
 }
 

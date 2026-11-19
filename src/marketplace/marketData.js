@@ -23,17 +23,29 @@ export async function loadMarket(discogsReleaseId) {
   return { ...m, lowest_price: Number(m.lowest_price) > 0 ? m.lowest_price : null }
 }
 
+// Identifies one pressing for the Venue Index: Discogs release id when the copy has one,
+// otherwise title + artist + catalogue number. Null when nothing identifies the pressing.
+export function venueArgs(item) {
+  if (!item) return null
+  const rid = Number(item.discogsReleaseId) || null
+  const cat = (item.catalogNumber || '').trim() || null
+  if (!rid && !cat) return null
+  return { rid, t: item.title || null, a: item.artist || null, cat }
+}
+
 // Platform-only score from member activity. Public: tier and score, never the inputs.
-export async function loadVenueIndex(discogsReleaseId) {
-  if (!discogsReleaseId) return null
-  const { data, error } = await supabase.rpc('venue_index', { rid: Number(discogsReleaseId) })
+export async function loadVenueIndex(item) {
+  const args = venueArgs(item)
+  if (!args) return null
+  const { data, error } = await supabase.rpc('venue_index_v3', args)
   return error ? null : data
 }
 
 // Full breakdown. The database only answers admins; anyone else gets an error and we return null.
-export async function loadVenueBreakdown(discogsReleaseId) {
-  if (!discogsReleaseId) return null
-  const { data, error } = await supabase.rpc('venue_index_breakdown', { rid: Number(discogsReleaseId) })
+export async function loadVenueBreakdown(item) {
+  const args = venueArgs(item)
+  if (!args) return null
+  const { data, error } = await supabase.rpc('venue_breakdown_v3', args)
   return error ? null : data
 }
 
