@@ -1,9 +1,11 @@
+import { useAuth } from '../AuthContext'
 import { matchKey } from '../utils'
 import WishlistPanel from './WishlistPanel'
+import { useWantRequests } from './useWantRequests'
 
 const PLACEHOLDER = 'https://placehold.co/300x300/E4E2DC/E4E2DC'
 
-function Tile({ item, owned, muted, onClick }) {
+function Tile({ item, owned, muted, onClick, alertCount = 0 }) {
   const imageUrl = item.imageUrl || item.image_url
   return (
     <div className={`flex flex-col gap-2 min-w-0 ${muted ? 'opacity-70' : ''}`}>
@@ -13,6 +15,11 @@ function Tile({ item, owned, muted, onClick }) {
         style={{ backgroundImage: `url(${imageUrl || PLACEHOLDER})` }}
       >
         <span className="absolute top-1.5 left-1.5 bg-text text-bg font-mono text-[10px] px-1.5 py-0.5">#{item.rank}</span>
+        {alertCount > 0 && (
+          <span title="Copies matching your price alert" className="absolute top-1.5 right-1.5 bg-accent text-bg font-mono text-[10px] px-1.5 py-0.5">
+            {alertCount} at your price
+          </span>
+        )}
         {owned && (
           <span className="absolute left-1.5 right-1.5 bottom-1.5 bg-surface text-text text-[11px] font-semibold px-1.5 py-0.5 text-center">You own this</span>
         )}
@@ -33,6 +40,14 @@ function MostWantedBoard({ isOwnProfile, profileName, wishlist, managing, onTogg
     publicWishlistItems, extraWishlistItems, showExtraRanks, setShowExtraRanks,
     myCollectionKeys, setSelectedWishlistItem, wishlistItems, setShowAddToWishlist
   } = wishlist
+
+  const { user } = useAuth()
+  // Price alerts are private, so they're only loaded on your own profile.
+  const requests = useWantRequests({ viewerId: user?.id, enabled: isOwnProfile })
+  const alertCountFor = (item) => {
+    const r = requests.byItemId.get(item.id)
+    return r && r.active && new Date(r.expires_at) > new Date() ? requests.liveMatches(r).length : 0
+  }
 
   const top = publicWishlistItems.slice(0, 10)
   const ownedCount = isOwnProfile
@@ -75,7 +90,7 @@ function MostWantedBoard({ isOwnProfile, profileName, wishlist, managing, onTogg
             <div className="text-sm text-text-muted">{profileName} hasn't picked their most wanted albums yet.</div>
           )}
         </div>
-        {managing && <div className="lg:col-span-2 lg:row-start-4"><WishlistPanel isOwnProfile={isOwnProfile} wishlist={wishlist} /></div>}
+        {managing && <div className="lg:col-span-2 lg:row-start-4"><WishlistPanel isOwnProfile={isOwnProfile} wishlist={wishlist} requests={isOwnProfile ? requests : null} /></div>}
       </>
     )
   }
@@ -90,14 +105,20 @@ function MostWantedBoard({ isOwnProfile, profileName, wishlist, managing, onTogg
             item={item}
             owned={!isOwnProfile && myCollectionKeys.includes(matchKey(item.title, item.artist))}
             onClick={isOwnProfile ? () => setSelectedWishlistItem(item) : undefined}
+            alertCount={isOwnProfile ? alertCountFor(item) : 0}
           />
         ))}
         {isOwnProfile && showExtraRanks && extraWishlistItems.map((item) => (
-          <Tile key={item.id} item={item} muted onClick={() => setSelectedWishlistItem(item)} />
+          <Tile key={item.id} item={item} muted onClick={() => setSelectedWishlistItem(item)} alertCount={alertCountFor(item)} />
         ))}
       </div>
 
       <div className="lg:col-start-1 lg:row-start-3 flex flex-wrap items-center gap-3 text-sm">
+        {isOwnProfile && !managing && requests.requests.length > 0 && (
+          <button onClick={() => onToggleManaging(true)} className="text-accent bg-transparent border-0 p-0 cursor-pointer text-[13px]">
+            Manage price alerts ({requests.requests.length})
+          </button>
+        )}
         {isOwnProfile ? (
           extraWishlistItems.length > 0 && (
             <>
@@ -120,7 +141,7 @@ function MostWantedBoard({ isOwnProfile, profileName, wishlist, managing, onTogg
         )}
       </div>
 
-      {managing && <div className="lg:col-span-2 lg:row-start-4"><WishlistPanel isOwnProfile={isOwnProfile} wishlist={wishlist} /></div>}
+      {managing && <div className="lg:col-span-2 lg:row-start-4"><WishlistPanel isOwnProfile={isOwnProfile} wishlist={wishlist} requests={isOwnProfile ? requests : null} /></div>}
     </>
   )
 }

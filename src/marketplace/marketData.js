@@ -62,3 +62,18 @@ export async function loadPressingPrice(discogsReleaseId) {
   const { data, error } = await supabase.rpc('pressing_price', { rid: Number(discogsReleaseId) })
   return error ? null : data
 }
+
+// Condition-split price picture for one pressing: per grade, Vinyl Venue sales (re-graded by
+// each seller's confirmed grading accuracy), delivered prices, Discogs' suggestion, a blended
+// estimate and a confidence level. See supabase/pressing_grade_stats.sql.
+export async function loadGradeStats(discogsReleaseId) {
+  if (!discogsReleaseId) return null
+  const { data, error } = await supabase.rpc('pressing_grade_stats', { rid: Number(discogsReleaseId) })
+  return error ? null : data
+}
+
+// The stats row for one media grade, or null.
+export function gradeRow(stats, mediaCondition) {
+  const g = String(mediaCondition || '').trim().toUpperCase()
+  return (stats?.grades || []).find((r) => r.grade === g) || null
+}

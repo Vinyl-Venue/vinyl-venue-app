@@ -5,6 +5,7 @@ import { useAuth } from './AuthContext'
 
 const TYPE_ICONS = {
   wishlist_match: '💿',
+  want_match: '🎯',
   auction_won: '🏆',
   auction_ended_sold: '💰',
   auction_ended_no_bids: '❌',
@@ -106,7 +107,9 @@ function NotificationBell() {
     // and won't render there, so those stay plain, non-clickable text.
     // auction_ending_soon and auction_outbid both point at listings that are
     // still active, so both are safe to deep-link to the seller's marketplace.
-    if ((n.type === 'auction_ending_soon' || n.type === 'auction_outbid') && n.listing_id) {
+    // A copy matching one of your Most Wanted requests was listed. It was active when the
+    // notification was sent, so it deep-links to the seller's marketplace like the auction ones.
+    if ((n.type === 'auction_ending_soon' || n.type === 'auction_outbid' || n.type === 'want_match') && n.listing_id) {
       return (
         <Link
           to={`/profile/${n.from_user_id}/marketplace?listing=${n.listing_id}`}

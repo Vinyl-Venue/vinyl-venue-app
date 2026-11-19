@@ -124,13 +124,15 @@ function MyPurchasesPage() {
     setLoading(false)
   }
 
-  async function handleSubmitReview(listing, rating, body) {
+  async function handleSubmitReview(listing, rating, body, accuracy = {}) {
     const { error } = await supabase.from('reviews').insert({
       listing_id: listing.id,
       seller_id: listing.user_id,
       reviewer_id: user.id,
       rating,
-      body: body.trim() || null
+      body: body.trim() || null,
+      media_accuracy: accuracy.media ?? null,
+      sleeve_accuracy: accuracy.sleeve ?? null
     })
 
     if (error) {
@@ -207,9 +209,39 @@ function MyPurchasesPage() {
   )
 }
 
+// One tap per grade: better / as described / one grade worse / two or more worse.
+// Stored as 1 / 0 / -1 / -2 and turned into each seller's grading accuracy.
+const ACCURACY_CHOICES = [
+  { value: 1, label: 'Better' },
+  { value: 0, label: 'As described' },
+  { value: -1, label: '1 grade worse' },
+  { value: -2, label: '2+ worse' }
+]
+
+function GradeAccuracyPicker({ label, value, onChange, disabled }) {
+  return (
+    <div className="flex flex-wrap items-center gap-1.5">
+      <span className="text-xs text-text w-36 flex-shrink-0">{label}</span>
+      {ACCURACY_CHOICES.map((c) => (
+        <button
+          key={c.value}
+          type="button"
+          disabled={disabled}
+          onClick={() => onChange(value === c.value ? null : c.value)}
+          className={`text-[11px] px-2 py-1 rounded border cursor-pointer ${value === c.value ? 'bg-text text-bg border-text' : 'bg-transparent text-text-muted border-border hover:border-accent'}`}
+        >
+          {c.label}
+        </button>
+      ))}
+    </div>
+  )
+}
+
 function PurchaseRow({ listing, sellerEmail, alreadyReviewed, onSubmitReview, cancellableOrderId, onCancelOrder }) {
   const [rating, setRating] = useState(0)
   const [body, setBody] = useState('')
+  const [mediaAccuracy, setMediaAccuracy] = useState(null)
+  const [sleeveAccuracy, setSleeveAccuracy] = useState(null)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
   const [cancelling, setCancelling] = useState(false)
@@ -223,7 +255,7 @@ function PurchaseRow({ listing, sellerEmail, alreadyReviewed, onSubmitReview, ca
 
     setSubmitting(true)
     setError('')
-    await onSubmitReview(listing, rating, body)
+    await onSubmitReview(listing, rating, body, { media: mediaAccuracy, sleeve: sleeveAccuracy })
     setSubmitting(false)
   }
 
@@ -290,6 +322,17 @@ function PurchaseRow({ listing, sellerEmail, alreadyReviewed, onSubmitReview, ca
       ) : (
         <div className="mt-3 pt-3 border-t border-border">
           <StarPicker value={rating} onChange={setRating} disabled={submitting} />
+          {listing.source !== 'trade' && (listing.media_condition || listing.sleeve_condition) && (
+            <div className="mt-2.5 flex flex-col gap-2">
+              <p className="m-0 text-xs text-text-muted">Were the grades accurate? Only totals are ever shown, never who answered.</p>
+              {listing.media_condition && (
+                <GradeAccuracyPicker label={`Disc (listed ${listing.media_condition})`} value={mediaAccuracy} onChange={setMediaAccuracy} disabled={submitting} />
+              )}
+              {listing.sleeve_condition && (
+                <GradeAccuracyPicker label={`Sleeve (listed ${listing.sleeve_condition})`} value={sleeveAccuracy} onChange={setSleeveAccuracy} disabled={submitting} />
+              )}
+            </div>
+          )}
           <textarea
             value={body}
             onChange={(event) => setBody(event.target.value)}
@@ -312,4 +355,4 @@ function PurchaseRow({ listing, sellerEmail, alreadyReviewed, onSubmitReview, ca
   )
 }
 
-export default MyPurchasesPage
+export default MyPurchasesPage

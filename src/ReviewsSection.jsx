@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react'
 import { supabase } from './supabaseClient'
 import TrustedBadge from './TrustedBadge'
-import { isTrustedSeller } from './sellerTrust'
+import { isTrustedSeller, loadGradingAccuracy } from './sellerTrust'
+import GradingAccuracyLine from './GradingAccuracyLine'
 import { formatStamp } from './utils'
 
 function StarDisplay({ rating }) {
@@ -16,16 +17,18 @@ function StarDisplay({ rating }) {
 function ReviewsSection({ sellerId }) {
   const [reviews, setReviews] = useState([])
   const [loading, setLoading] = useState(true)
+  const [accuracy, setAccuracy] = useState(null)
 
   useEffect(() => {
     fetchReviews()
+    loadGradingAccuracy(sellerId).then(setAccuracy)
   }, [sellerId])
 
   async function fetchReviews() {
     setLoading(true)
     const { data, error } = await supabase
       .from('reviews')
-      .select('*, profiles!reviews_reviewer_id_fkey(display_name)')
+      .select('id, listing_id, seller_id, reviewer_id, rating, body, created_at, profiles!reviews_reviewer_id_fkey(display_name)')
       .eq('seller_id', sellerId)
       .order('created_at', { ascending: false })
 
@@ -61,6 +64,7 @@ function ReviewsSection({ sellerId }) {
         </span>
         {isTrustedSeller(averageRating, reviews.length) && <TrustedBadge />}
       </div>
+      <GradingAccuracyLine accuracy={accuracy} className="mb-3" />
 
       <div className="flex flex-col gap-2">
         {reviews.map((review) => (

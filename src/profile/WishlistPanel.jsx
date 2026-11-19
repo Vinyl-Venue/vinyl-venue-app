@@ -1,11 +1,51 @@
+import { useState } from 'react'
 import AddAlbumForm from '../AddAlbumForm'
 import { matchKey } from '../utils'
+import RequestEditor from './RequestEditor'
+import { requestSummary } from './useWantRequests'
 
 const PLACEHOLDER_60 = 'https://placehold.co/60x60/E4E2DC/767467?text=%20'
 
 // "My Most Wanted" on your own profile, "Their wishlist" on someone else's.
 // All state and handlers come from useWishlist.
-function WishlistPanel({ isOwnProfile, wishlist }) {
+// Owner-only: the alert chip on a row and, when open, the editor under it.
+function AlertChip({ item, requests, openId, setOpenId }) {
+  const request = requests.byItemId.get(item.id)
+  const live = request ? requests.liveMatches(request).length : 0
+  const label = requestSummary(request, live) || 'Set alert'
+  return (
+    <button
+      type="button"
+      onClick={() => setOpenId(openId === item.id ? null : item.id)}
+      className={`text-[10px] px-1.5 py-0.5 rounded border cursor-pointer flex-shrink-0 whitespace-nowrap ${
+        live > 0 && request?.active ? 'border-accent text-accent bg-transparent' : 'border-border text-text-faint bg-transparent hover:text-accent'
+      }`}
+    >
+      {label}
+    </button>
+  )
+}
+
+function AlertEditorFor({ item, requests, onClose }) {
+  const request = requests.byItemId.get(item.id)
+  return (
+    <RequestEditor
+      key={request?.id || `new-${item.id}`}
+      item={item}
+      request={request}
+      matches={request ? requests.liveMatches(request) : []}
+      onSave={(form) => requests.saveRequest(item.id, form)}
+      onRemove={async () => { await requests.removeRequest(request.id); onClose() }}
+      onPause={(paused) => requests.setPaused(request.id, paused)}
+      onDismiss={(matchId) => requests.dismissMatch(matchId)}
+      onClose={onClose}
+    />
+  )
+}
+
+function WishlistPanel({ isOwnProfile, wishlist, requests = null }) {
+  const [openAlertId, setOpenAlertId] = useState(null)
+  const showAlerts = isOwnProfile && requests
   const {
     wishlistItems, wishlistRank, setWishlistRank,
     showAddToWishlist, setShowAddToWishlist, showExtraRanks, setShowExtraRanks,
@@ -29,7 +69,7 @@ function WishlistPanel({ isOwnProfile, wishlist }) {
       </div>
       <div className="bg-surface border border-border rounded p-4 font-sans">
       <p className="text-xs text-text-faint mb-3">
-        {isOwnProfile ? 'Ranked by how much you want it — 1 is your most coveted.' : 'Their top-ranked wishlist.'}
+        {isOwnProfile ? 'Ranked by how much you want it — 1 is your most coveted. Set a price alert on any item to hear when a copy at your price and grade is listed.' : 'Their top-ranked wishlist.'}
       </p>
 
       {isOwnProfile && showAddToWishlist && (
@@ -80,7 +120,8 @@ function WishlistPanel({ isOwnProfile, wishlist }) {
             const imageUrl = item.imageUrl || item.image_url
             const isMatch = !isOwnProfile && myCollectionKeys.includes(matchKey(item.title, item.artist))
             return (
-              <div key={item.id} className={`flex items-center gap-2.5 rounded px-2 py-1.5 ${isMatch ? 'bg-accent/10' : ''}`}>
+              <div key={item.id}>
+              <div className={`flex items-center gap-2.5 rounded px-2 py-1.5 ${isMatch ? 'bg-accent/10' : ''}`}>
                 <span className="text-accent font-bold text-xs w-5 flex-shrink-0">#{item.rank}</span>
                 <img
                   src={imageUrl || PLACEHOLDER_60}
@@ -92,11 +133,14 @@ function WishlistPanel({ isOwnProfile, wishlist }) {
                   <strong>{item.title}</strong> — {item.artist}
                 </span>
                 {isMatch && <span className="text-accent text-[10px] font-bold flex-shrink-0">have it</span>}
+                {showAlerts && <AlertChip item={item} requests={requests} openId={openAlertId} setOpenId={setOpenAlertId} />}
                 {isOwnProfile && (
                   <button onClick={() => handleRemoveWishlistItem(item)} className="text-text-faint text-xs bg-transparent border-0 cursor-pointer flex-shrink-0 hover:text-accent">
                     ×
                   </button>
                 )}
+              </div>
+              {showAlerts && openAlertId === item.id && <AlertEditorFor item={item} requests={requests} onClose={() => setOpenAlertId(null)} />}
               </div>
             )
           })}
@@ -114,15 +158,19 @@ function WishlistPanel({ isOwnProfile, wishlist }) {
           {showExtraRanks && (
             <div className="flex flex-col gap-1.5 mt-2 opacity-70">
               {extraWishlistItems.map((item) => (
-                <div key={item.id} className="flex items-center gap-2.5 rounded px-2 py-1.5">
+                <div key={item.id}>
+                <div className="flex items-center gap-2.5 rounded px-2 py-1.5">
                   <span className="text-text-muted font-bold text-xs w-5 flex-shrink-0">#{item.rank}</span>
                   <img src={item.imageUrl || PLACEHOLDER_60} alt={item.title} className="w-8 h-8 object-cover rounded flex-shrink-0 cursor-pointer" onClick={() => setSelectedWishlistItem(item)} />
                   <span className="flex-1 text-sm min-w-0 truncate cursor-pointer" onClick={() => setSelectedWishlistItem(item)}>
                     <strong>{item.title}</strong> — {item.artist}
                   </span>
+                  {showAlerts && <AlertChip item={item} requests={requests} openId={openAlertId} setOpenId={setOpenAlertId} />}
                   <button onClick={() => handleRemoveWishlistItem(item)} className="text-text-faint text-xs bg-transparent border-0 cursor-pointer flex-shrink-0 hover:text-accent">
                     ×
                   </button>
+                </div>
+                {showAlerts && openAlertId === item.id && <AlertEditorFor item={item} requests={requests} onClose={() => setOpenAlertId(null)} />}
                 </div>
               ))}
             </div>

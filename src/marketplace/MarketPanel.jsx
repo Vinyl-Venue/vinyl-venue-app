@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
 import { useAuth } from '../AuthContext'
-import { loadMarket, loadPressingPrice, loadVenueIndex, loadVenueBreakdown, checkIsAdmin, suggestedPriceFor, money } from './marketData'
+import { loadMarket, loadPressingPrice, loadVenueIndex, loadVenueBreakdown, checkIsAdmin, suggestedPriceFor, money, loadGradeStats, gradeRow } from './marketData'
 import { scoreRarity } from './rarity'
+import GradePriceTable from './GradePriceTable'
 
 // What the panel shows once the data is in. Kept separate from the loading so it can be tested on its own.
 const VENUE_TONES = { Hot: '#c1666b', Rising: '#b8863b', Steady: '#4f7a56', Quiet: '#8a8a8a' }
@@ -31,7 +32,7 @@ function VenueBreakdown({ data }) {
   )
 }
 
-export function MarketView({ item, market, showSuggestion = true, venue = null, isAdmin = false, breakdown = null }) {
+export function MarketView({ item, market, showSuggestion = true, venue = null, isAdmin = false, breakdown = null, gradeStats = null }) {
   const rarity = scoreRarity(item, market)
   const suggestion = showSuggestion ? suggestedPriceFor(market, item.mediaCondition) : null
   const [open, setOpen] = useState(false)
@@ -89,6 +90,7 @@ export function MarketView({ item, market, showSuggestion = true, venue = null, 
       {market && (
         <p className="m-0 mt-2 text-[11px] text-text-faint">Discogs data, refreshed daily. Prices are a guide, not a guarantee.</p>
       )}
+      {gradeStats && <GradePriceTable stats={gradeStats} highlightGrade={item.mediaCondition} />}
     </div>
   )
 }
@@ -101,13 +103,19 @@ function MarketPanel({ item, showSuggestion = true }) {
   const [venue, setVenue] = useState(null)
   const [isAdmin, setIsAdmin] = useState(false)
   const [breakdown, setBreakdown] = useState(null)
+  const [gradeStats, setGradeStats] = useState(null)
   const id = item?.discogsReleaseId
 
   useEffect(() => {
     let cancelled = false
-    setMarket(null); setVenue(null); setBreakdown(null)
+    setMarket(null); setVenue(null); setBreakdown(null); setGradeStats(null)
     if (id) {
-      loadMarket(id).then((m) => { if (!cancelled) setMarket(m) })
+      // Grade stats read the Discogs cache, so load them after the market call has refreshed it.
+      loadMarket(id).then((m) => {
+        if (cancelled) return
+        setMarket(m)
+        loadGradeStats(id).then((g) => { if (!cancelled) setGradeStats(g) })
+      })
       loadVenueIndex(id).then((v) => { if (!cancelled) setVenue(v) })
     }
     return () => { cancelled = true }
@@ -127,7 +135,7 @@ function MarketPanel({ item, showSuggestion = true }) {
 
   // Nothing identifies this pressing on Discogs, so there is nothing trustworthy to show.
   if (!id) return null
-  return <MarketView item={item} market={market} showSuggestion={showSuggestion} venue={venue} isAdmin={isAdmin} breakdown={breakdown} />
+  return <MarketView item={item} market={market} showSuggestion={showSuggestion} venue={venue} isAdmin={isAdmin} breakdown={breakdown} gradeStats={gradeStats} />
 }
 
 export default MarketPanel
@@ -136,32 +144,39 @@ export default MarketPanel
 export function PriceSuggestion({ item, onUse }) {
   const [market, setMarket] = useState(null)
   const [platform, setPlatform] = useState(null)
+  const [gradeStats, setGradeStats] = useState(null)
   const id = item?.discogsReleaseId
   useEffect(() => {
     let cancelled = false
-    setMarket(null); setPlatform(null)
+    setMarket(null); setPlatform(null); setGradeStats(null)
     if (id) {
       loadMarket(id).then((m) => { if (!cancelled) setMarket(m) })
       loadPressingPrice(id).then((p) => { if (!cancelled) setPlatform(p) })
+      loadGradeStats(id).then((g) => { if (!cancelled) setGradeStats(g) })
     }
     return () => { cancelled = true }
   }, [id])
-  if (!id || !market) return null
-  return <PriceSuggestionView item={item} market={market} platform={platform} onUse={onUse} />
+  if (!id || (!market && !gradeStats)) return null
+  return <PriceSuggestionView item={item} market={market} platform={platform} gradeStats={gradeStats} onUse={onUse} />
 }
 
-export function PriceSuggestionView({ item, market, platform = null, onUse }) {
-  // Best anchor first: what this exact pressing sold for here, then Discogs' grade suggestion, then the lowest ask.
+export function PriceSuggestionView({ item, market, platform = null, gradeStats = null, onUse }) {
+  // Best anchor first: this pressing at this grade here (item price, so shipping is set separately),
+  // then the all-grades average here, then Discogs' grade suggestion, then the lowest ask.
   const suggested = suggestedPriceFor(market, item.mediaCondition)
+  const row = gradeRow(gradeStats, item.mediaCondition)
   let value = null
   let label = ''
-  if (platform?.avg_sold != null) {
+  if (row && row.sales > 0 && row.estimate_item != null) {
+    value = row.estimate_item
+    label = `Suggested: ${money(value, 'USD')} for ${row.grade} (${row.sales} sale${row.sales === 1 ? '' : 's'} at this grade here, ${row.confidence} confidence; before shipping)`
+  } else if (platform?.avg_sold != null) {
     value = platform.avg_sold
     label = `Suggested: ${money(value, 'USD')} (avg of ${platform.sales} sales of this pressing here)`
   } else if (suggested != null) {
     value = suggested
-    label = `Suggested: ${money(value, market.currency)} for ${item.mediaCondition} (Discogs)`
-  } else if (market.lowest_price != null) {
+    label = `Suggested: ${money(value, market?.currency)} for ${item.mediaCondition} (Discogs)`
+  } else if (market?.lowest_price != null) {
     value = market.lowest_price
     label = `Lowest ask on Discogs: ${money(value, market.currency)}`
   }

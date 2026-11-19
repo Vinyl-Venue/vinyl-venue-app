@@ -7,6 +7,7 @@ import AuctionCountdown from './AuctionCountdown'
 import ReportButton from './ReportButton'
 import PressingDetails from './marketplace/PressingDetails'
 import OtherPressings from './marketplace/OtherPressings'
+import ListingPriceContext from './marketplace/ListingPriceContext'
 
 // Mirrors the database's min_bid_increment() so the form can show the real
 // minimum up front. The database remains the authority on what's accepted.
@@ -314,6 +315,10 @@ function ListingDetailContent({ listing, currentUserId, onMarkSold, onCancelList
           <p className="font-sans text-xs text-text-faint mt-1">
             + {localShippingPrice != null ? `$${Number(localShippingPrice).toFixed(2)} shipping` : 'shipping: contact seller'}
           </p>
+        )}
+
+        {!isSold && (
+          <ListingPriceContext listing={listing} price={localPrice} shippingPrice={localShippingPrice} isAuction={isAuction} />
         )}
 
         {localTradePreference && (
