@@ -1,4 +1,5 @@
 import { supabase } from '../supabaseClient'
+import { sleeveFactor } from './conditionFactors'
 
 // Discogs grade names for the condition codes the app uses.
 const GRADE_KEYS = {
@@ -56,10 +57,11 @@ export async function checkIsAdmin(userId) {
 }
 
 // Discogs' suggested price for a media condition, or null when Discogs gave none.
-export function suggestedPriceFor(market, mediaCondition) {
+// Discogs' grade suggestions are for the disc; a sleeve below VG+ lowers the price (see conditionFactors.js).
+export function suggestedPriceFor(market, mediaCondition, sleeveCondition = null) {
   const key = GRADE_KEYS[String(mediaCondition || '').trim()]
   const value = key && market?.suggested ? market.suggested[key] : null
-  return Number.isFinite(Number(value)) ? Number(value) : null
+  return Number.isFinite(Number(value)) ? Number(value) * sleeveFactor(sleeveCondition) : null
 }
 
 export function money(value, currency = 'USD') {

@@ -1,0 +1,22 @@
+-- Record of what is already applied in Supabase (do not run again).
+-- Disc and sleeve condition now factor into price. Everything is expressed relative to a VG+ disc in a
+-- sleeve at VG+ or better, so a worn sleeve no longer drags a disc grade's price down.
+--
+-- vv_disc_factor(grade):   M 1.45, NM 1.25, VG+ 1.00, VG 0.72, G+ 0.50, G 0.35, F 0.25, P 0.15 (unknown = 1)
+--   Follows the spread of Discogs' own grade suggestions.
+-- vv_sleeve_factor(grade): M/NM/VG+ 1.00, VG 0.90, G+ 0.78, G 0.65, F 0.50, P 0.40 (unknown = 1)
+--   Our assumption until enough Vinyl Venue sales exist to measure it.
+--
+-- Changed functions:
+--   pressing_grade_stats(rid)  each sale's item price is divided by the sleeve factor before the per-disc-grade
+--                              median; rows gain sleeve_adjusted; output gains sleeve_baseline and sleeve_factors.
+--   pressing_price_averages()  average is now of baseline-condition prices (price / (disc factor * sleeve factor)).
+--                              Clients scale it back to a listing's own grades (src/marketplace/conditionFactors.js).
+--   venue_index_calc(text)     the price signal compares condition-normalised sold prices with the Discogs lowest ask.
+--
+-- create or replace function public.vv_disc_factor(g text) returns numeric language sql immutable set search_path to 'public' as $$
+--   select case vv_grade_rank(g) when 8 then 1.45 when 7 then 1.25 when 6 then 1.0 when 5 then 0.72 when 4 then 0.5
+--     when 3 then 0.35 when 2 then 0.25 when 1 then 0.15 else 1.0 end::numeric $$;
+-- create or replace function public.vv_sleeve_factor(g text) returns numeric language sql immutable set search_path to 'public' as $$
+--   select case when vv_grade_rank(g) >= 6 then 1.0 when vv_grade_rank(g) = 5 then 0.9 when vv_grade_rank(g) = 4 then 0.78
+--     when vv_grade_rank(g) = 3 then 0.65 when vv_grade_rank(g) = 2 then 0.5 when vv_grade_rank(g) = 1 then 0.4 else 1.0 end::numeric $$;

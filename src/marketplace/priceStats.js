@@ -1,4 +1,5 @@
 import { supabase } from '../supabaseClient'
+import { conditionFactor } from './conditionFactors'
 
 const norm = (s) => (s || '').toLowerCase().replace(/[^a-z0-9]/g, '')
 
@@ -25,7 +26,9 @@ export function dealPercent(listing, averages) {
     : averages.get(`${norm(listing.title)}|${norm(listing.artist)}`)
   const price = Number(listing.price)
   if (!stat || !price || !stat.avg) return null
-  const pct = Math.round((1 - price / stat.avg) * 100)
+  // Per-pressing averages are for a VG+ disc in a VG+ sleeve; scale to this copy's own grades.
+  const expected = listing.discogsReleaseId ? stat.avg * conditionFactor(listing.mediaCondition, listing.sleeveCondition) : stat.avg
+  const pct = Math.round((1 - price / expected) * 100)
   return pct >= 10 ? pct : null
 }
 

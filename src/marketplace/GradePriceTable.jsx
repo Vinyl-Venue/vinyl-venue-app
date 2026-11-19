@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { money } from './marketData'
+import { sleevePenaltyText } from './conditionFactors'
 
 const CONFIDENCE = {
   high: { label: 'High', tone: '#4f7a56' },
@@ -11,22 +12,28 @@ const CONFIDENCE = {
 function sourceNote(row) {
   if (row.source === 'discogs') return 'No sales here yet; Discogs suggestion only.'
   const sales = `${row.sales} sale${row.sales === 1 ? '' : 's'} here`
-  const adjusted = row.adjusted ? `, ${row.adjusted} re-graded for seller accuracy` : ''
+  const adjusted = (row.adjusted ? `, ${row.adjusted} re-graded for seller accuracy` : '') + (row.sleeve_adjusted ? `, ${row.sleeve_adjusted} priced up to a VG+ sleeve` : '')
   return row.source === 'blended' ? `${sales}${adjusted}, blended with Discogs` : `${sales}${adjusted}`
 }
 
 // What this pressing sells for, by disc grade, delivered. Honest about thin data: every row
 // says how many sales it rests on and how much to trust it.
-function GradePriceTable({ stats, highlightGrade }) {
+function GradePriceTable({ stats, highlightGrade, sleeveGrade = null }) {
   const [open, setOpen] = useState(false)
   if (!stats || !stats.grades || stats.grades.length === 0) {
     return <p className="m-0 mt-3 text-[12px] text-text-muted">No sales of this pressing on Vinyl Venue yet, so there's no price by grade to show.</p>
   }
   const hl = String(highlightGrade || '').trim().toUpperCase()
+  const factors = (stats.sleeve_factors || []).filter((f) => f.factor < 1)
+  const mine = sleevePenaltyText(sleeveGrade)
+  const sleeveLine = factors.length
+    ? ` A worn sleeve lowers the price: ${factors.map((f) => `${f.grade} −${Math.round((1 - f.factor) * 100)}%`).join(', ')}.${mine ? ` Your sleeve (${sleeveGrade}) is ${mine}.` : ''}`
+    : ''
 
   return (
     <div className="mt-3">
-      <p className="m-0 mb-1.5 font-mono text-[10px] tracking-wider uppercase text-text-faint">Price by grade, delivered</p>
+      <p className="m-0 mb-1.5 font-mono text-[10px] tracking-wider uppercase text-text-faint">Price by disc grade, delivered</p>
+      <p className="m-0 mb-1.5 text-[11px] text-text-muted">Estimates are for a sleeve at VG+ or better.{sleeveLine}</p>
       <table className="w-full text-[12px] border-collapse">
         <thead>
           <tr className="text-text-faint text-left">
@@ -70,7 +77,7 @@ function GradePriceTable({ stats, highlightGrade }) {
           <p className="m-0">
             Delivered means price plus shipping{stats.typical_shipping != null
               ? `; estimates add typical shipping of ${money(stats.typical_shipping)} (${stats.shipping_source === 'pressing' ? 'from this pressing’s sales' : 'platform-wide'})`
-              : ''}. Sales from the last 24 months, trades excluded. When a seller&apos;s buyers consistently report their grades as a full grade high, their sales count at the grade buyers actually got.
+              : ''}. Sales from the last 24 months, trades excluded. A sale with a worn sleeve is priced up to what the same disc would fetch in a VG+ sleeve before it counts, so a scuffed sleeve doesn't drag a disc grade down. When a seller&apos;s buyers consistently report their grades as a full grade high, their sales count at the grade buyers actually got.
           </p>
         </div>
       )}

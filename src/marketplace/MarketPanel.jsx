@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useAuth } from '../AuthContext'
+import { sleeveFactor, conditionFactor, sleevePenaltyText } from './conditionFactors'
 import { loadMarket, loadPressingPrice, loadVenueIndex, loadVenueBreakdown, checkIsAdmin, suggestedPriceFor, money, loadGradeStats, gradeRow, venueArgs } from './marketData'
 import { scoreRarity } from './rarity'
 import GradePriceTable from './GradePriceTable'
@@ -37,7 +38,8 @@ function VenueBreakdown({ data }) {
 
 export function MarketView({ item, market, showSuggestion = true, venue = null, isAdmin = false, breakdown = null, gradeStats = null }) {
   const rarity = scoreRarity(item, market)
-  const suggestion = showSuggestion ? suggestedPriceFor(market, item.mediaCondition) : null
+  const suggestion = showSuggestion ? suggestedPriceFor(market, item.mediaCondition, item.sleeveCondition) : null
+  const sleeveNote = sleevePenaltyText(item.sleeveCondition)
   const [open, setOpen] = useState(false)
 
   return (
@@ -85,7 +87,7 @@ export function MarketView({ item, market, showSuggestion = true, venue = null, 
 
       {market && (market.lowest_price != null || market.num_for_sale != null || suggestion != null) && (
         <dl className="m-0 grid grid-cols-[150px_1fr] gap-x-3 gap-y-1.5 text-[13px]">
-          {suggestion != null && (<><dt className="text-text-muted">Suggested price ({item.mediaCondition})</dt><dd className="m-0 text-text font-bold">{money(suggestion, market.currency)}</dd></>)}
+          {suggestion != null && (<><dt className="text-text-muted">Suggested price ({item.mediaCondition}{item.sleeveCondition ? `, sleeve ${item.sleeveCondition}` : ''})</dt><dd className="m-0 text-text font-bold">{money(suggestion, market.currency)}{sleeveNote && <span className="font-normal text-text-faint"> · sleeve {sleeveNote}</span>}</dd></>)}
           {market.lowest_price != null && (<><dt className="text-text-muted">Lowest ask on Discogs</dt><dd className="m-0 text-text">{money(market.lowest_price, market.currency)}</dd></>)}
           {market.num_for_sale != null && (<><dt className="text-text-muted">Copies for sale</dt><dd className="m-0 text-text">{market.num_for_sale}</dd></>)}
         </dl>
@@ -93,7 +95,7 @@ export function MarketView({ item, market, showSuggestion = true, venue = null, 
       {market && (
         <p className="m-0 mt-2 text-[11px] text-text-faint">Discogs data, refreshed daily. Prices are a guide, not a guarantee.</p>
       )}
-      {gradeStats && <GradePriceTable stats={gradeStats} highlightGrade={item.mediaCondition} />}
+      {gradeStats && <GradePriceTable stats={gradeStats} highlightGrade={item.mediaCondition} sleeveGrade={item.sleeveCondition} />}
     </div>
   )
 }
@@ -186,19 +188,21 @@ export function PriceSuggestion({ item, onUse }) {
 export function PriceSuggestionView({ item, market, platform = null, gradeStats = null, onUse }) {
   // Best anchor first: this pressing at this grade here (item price, so shipping is set separately),
   // then the all-grades average here, then Discogs' grade suggestion, then the lowest ask.
-  const suggested = suggestedPriceFor(market, item.mediaCondition)
+  const suggested = suggestedPriceFor(market, item.mediaCondition, item.sleeveCondition)
   const row = gradeRow(gradeStats, item.mediaCondition)
+  const sf = sleeveFactor(item.sleeveCondition)
+  const sleeveNote = sleevePenaltyText(item.sleeveCondition)
   let value = null
   let label = ''
   if (row && row.sales > 0 && row.estimate_item != null) {
-    value = row.estimate_item
-    label = `Suggested: ${money(value, 'USD')} for ${row.grade} (${row.sales} sale${row.sales === 1 ? '' : 's'} at this grade here, ${row.confidence} confidence; before shipping)`
+    value = row.estimate_item * sf
+    label = `Suggested: ${money(value, 'USD')} for ${row.grade}${sleeveNote ? ` with a ${item.sleeveCondition} sleeve (${sleeveNote})` : ''} (${row.sales} sale${row.sales === 1 ? '' : 's'} at this grade here, ${row.confidence} confidence; before shipping)`
   } else if (platform?.avg_sold != null) {
-    value = platform.avg_sold
-    label = `Suggested: ${money(value, 'USD')} (avg of ${platform.sales} sales of this pressing here)`
+    value = platform.avg_sold * conditionFactor(item.mediaCondition, item.sleeveCondition)
+    label = `Suggested: ${money(value, 'USD')} (avg of ${platform.sales} sales of this pressing here, adjusted to this copy's disc and sleeve grades)`
   } else if (suggested != null) {
     value = suggested
-    label = `Suggested: ${money(value, market?.currency)} for ${item.mediaCondition} (Discogs)`
+    label = `Suggested: ${money(value, market?.currency)} for ${item.mediaCondition}${sleeveNote ? ` with a ${item.sleeveCondition} sleeve (${sleeveNote})` : ''} (Discogs)`
   } else if (market?.lowest_price != null) {
     value = market.lowest_price
     label = `Lowest ask on Discogs: ${money(value, market.currency)}`

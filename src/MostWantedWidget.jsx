@@ -15,7 +15,7 @@ const ROW_OPACITY = [1, 0.88, 0.75]
 function MostWantedWidget({ title = 'Most Wanted', limit = 10, defaultMode = 'global', allowToggle = true, layout = 'list', onItemClick }) {
   const { user } = useAuth()
   const [mode, setMode] = useState(defaultMode)
-  const [items, setItems] = useState([])
+  const [items, setItems] = unpmseState([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {

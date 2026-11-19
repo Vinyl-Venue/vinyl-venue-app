@@ -45,7 +45,29 @@ function traitScore(item) {
   return { points: Math.min(12, points), found }
 }
 
-// item: { discogsHave, discogsWant, edition, format, vinylColor, pressingYear, year }
+// Standard grading scale (Goldmine / Discogs): M, NM, VG+, VG, G+, G, F, P. The disc and the sleeve are
+// graded separately and never blended into one grade, so each is scored on its own. Position on the
+// scale runs from 0 (Poor) to 1 (Mint), evenly spaced.
+const GRADE_RANK = { M: 8, NM: 7, 'M-': 7, 'VG+': 6, VG: 5, 'G+': 4, G: 3, F: 2, P: 1 }
+const gradeQuality = (g) => {
+  const r = GRADE_RANK[String(g || '').trim().toUpperCase()]
+  return r ? (r - 1) / 7 : null
+}
+
+// A top-grade disc or sleeve is harder to find the older the pressing is; a new pressing in mint adds little.
+function conditionParts(item, year, isReissue) {
+  const ageWeight = isReissue ? 0.25 : !year ? 0.5 : year <= 1979 ? 1 : year <= 1989 ? 0.85 : year <= 1999 ? 0.7 : year <= 2009 ? 0.5 : 0.25
+  const age = isReissue ? 'a reissue' : year ? `a ${year} original` : 'a pressing of unknown age'
+  const parts = []
+  for (const [key, label, grade] of [['disc', 'Disc condition', item.mediaCondition], ['sleeve', 'Sleeve condition', item.sleeveCondition]]) {
+    const q = gradeQuality(grade)
+    if (q == null) continue
+    parts.push({ key: `${key}_condition`, label, points: 4 * q * ageWeight, max: 4, note: `${String(grade).trim().toUpperCase()} on ${age}` })
+  }
+  return parts
+}
+
+// item: { discogsHave, discogsWant, edition, format, vinylColor, pressingYear, year, mediaCondition, sleeveCondition }
 // market: { num_for_sale, have, want } (market values override the item's own copies)
 export function scoreRarity(item, market = null) {
   const have = Number(market?.have ?? item.discogsHave)
@@ -82,6 +104,10 @@ export function scoreRarity(item, market = null) {
   if (markings.hasText) {
     parts.push({ key: 'markings', label: 'Markings', points: Math.min(6, markings.points), max: 6, note: markings.found.length ? markings.found.join(', ') : 'No notable markings noted' })
   }
+
+  // Disc and sleeve grades, each scored on its own. Only counted when a grade was entered, so a blank
+  // field never lowers a score.
+  parts.push(...conditionParts(item, year, isReissue))
 
   if (year) {
     const pts = isReissue ? 0 : year <= 1979 ? 8 : year <= 1989 ? 6 : year <= 1999 ? 4 : year <= 2009 ? 2 : 0

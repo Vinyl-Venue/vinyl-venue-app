@@ -4,7 +4,6 @@ import { useAuth } from './AuthContext'
 import { discogsSearch, discogsFetchRelease } from './utils'
 import ListingPhotoUploader from './ListingPhotoUploader'
 import PressingDetails from './marketplace/PressingDetails'
-import MarketPanel, { PriceSuggestion } from './marketplace/MarketPanel'
 import { pressingExtrasToRow } from './profile/profileData'
 
 const PLACEHOLDER_COVER = "https://placehold.co/500x500/E4E2DC/E4E2DC"
@@ -352,12 +351,12 @@ function AlbumDetailContent({ album, onClose, isOwnAlbum = false }) {
 
     setCheckingPricing(true)
 
-    // Compare against the same pressing when we know it; different pressings of one album can differ hugely in price.
-    let compQuery = supabase.from('listings').select('price').eq('status', 'active')
-    compQuery = album.discogsReleaseId
-      ? compQuery.eq('discogs_release_id', album.discogsReleaseId)
-      : compQuery.ilike('title', album.title.trim()).ilike('artist', album.artist.trim())
-    const { data: comparablePrices, error: compError } = await compQuery
+    const { data: comparablePrices, error: compError } = await supabase
+      .from('listings')
+      .select('price')
+      .eq('status', 'active')
+      .ilike('title', album.title.trim())
+      .ilike('artist', album.artist.trim())
 
     setCheckingPricing(false)
 
@@ -392,8 +391,7 @@ function AlbumDetailContent({ album, onClose, isOwnAlbum = false }) {
       avgPrice,
       minPrice: Math.min(...prices),
       maxPrice: Math.max(...prices),
-      count: prices.length,
-      scope: album.discogsReleaseId ? 'pressing' : 'album'
+      count: prices.length
     })
     setPendingListing(listingData)
   }
@@ -522,7 +520,6 @@ function AlbumDetailContent({ album, onClose, isOwnAlbum = false }) {
           {hasPressingDetails && (
             <>
               <PressingDetails item={album} showCondition={false} notesLabel="Notes" />
-              <MarketPanel item={{ ...album, mediaCondition: localMediaCondition || album.mediaCondition }} />
               {album.specialTags && album.specialTags.length > 0 && (
                 <p className="font-sans text-sm text-text-muted mt-3 mb-0"><strong className="text-text">Special:</strong> {album.specialTags.join(', ')}</p>
               )}
@@ -630,7 +627,7 @@ function AlbumDetailContent({ album, onClose, isOwnAlbum = false }) {
                     {' '}for <strong className="text-accent">${Number(price).toFixed(2)}</strong>.
                   </p>
                   <p className="text-text-muted mb-3">
-                    This is {pricingCheck.comparisonText} ({pricingCheck.count} comparable listing{pricingCheck.count === 1 ? '' : 's'} of {pricingCheck.scope === 'pressing' ? 'this pressing' : 'this album, other pressings may differ'}, ${pricingCheck.minPrice.toFixed(2)}–${pricingCheck.maxPrice.toFixed(2)}).
+                    This is {pricingCheck.comparisonText} ({pricingCheck.count} comparable listing{pricingCheck.count === 1 ? '' : 's'}, ${pricingCheck.minPrice.toFixed(2)}–${pricingCheck.maxPrice.toFixed(2)}).
                   </p>
                   <div className="flex gap-2">
                     <button onClick={handleConfirmListing} className="flex-1 bg-accent text-bg border-0 px-2 py-2 rounded text-sm cursor-pointer">
@@ -659,7 +656,6 @@ function AlbumDetailContent({ album, onClose, isOwnAlbum = false }) {
                       <option value="auction">Auction</option>
                     </select>
                   </div>
-                  <PriceSuggestion item={{ ...album, mediaCondition: localMediaCondition || album.mediaCondition }} onUse={setPrice} />
                   <input
                     type="number"
                     min="0"
