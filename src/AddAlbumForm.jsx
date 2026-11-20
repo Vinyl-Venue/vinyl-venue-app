@@ -3,6 +3,7 @@ import AutocompleteInput from './AutocompleteInput'
 import SmartField from './SmartField'
 import { scanBarcodeFromFile } from './barcodeScan'
 import PressingFinder from './marketplace/PressingFinder'
+import SelectedPressingPreview from './marketplace/SelectedPressingPreview'
 import SelectWithCustom from './SelectWithCustom'
 import SpecialTagsInput from './SpecialTagsInput'
 import { supabase } from './supabaseClient'
@@ -87,6 +88,7 @@ function AddAlbumForm({
   const [discogsLoadingId, setDiscogsLoadingId] = useState(null)
   const [discogsError, setDiscogsError] = useState('')
   const [versions, setVersions] = useState([])
+  const [versionsTotal, setVersionsTotal] = useState(null)
   const [albumHint, setAlbumHint] = useState(null)
   const [scanning, setScanning] = useState(false)
   const [scanNote, setScanNote] = useState('')
@@ -186,10 +188,28 @@ function AddAlbumForm({
 
   // Pulls every vinyl pressing of the album the results belong to, for the
   // guided finder. Returns how many pressings the results did not already cover.
+  // What the user already typed that Discogs can filter pressings by.
+  function typedFilters() {
+    return { label: label.trim(), country: pressingCountry.trim(), released: pressingYear ? String(pressingYear).trim() : '' }
+  }
+
+  // Pulls the pressings the typed label / country / year point to, and merges them in.
+  async function handleLoadMore() {
+    if (!albumHint?.masterId) return
+    const { versions: more, total } = await discogsVersions(albumHint.masterId, discogsFormat, { ...typedFilters(), skipBase: true })
+    if (!more || more.length === 0) return
+    setVersions((cur) => {
+      const have = new Set(cur.map((v) => v.id))
+      return [...cur, ...more.filter((v) => !have.has(v.id)).map((v) => ({ ...v, barcodeMatch: false }))]
+    })
+    if (total) setVersionsTotal((t) => Math.max(t || 0, total))
+  }
+
   async function loadVersions(results, tagBarcodeMatches) {
     const masterIds = [...new Set(results.map((r) => r.masterId).filter(Boolean))]
     if (masterIds.length !== 1) return 0
-    const { versions: all } = await discogsVersions(masterIds[0], discogsFormat)
+    const { versions: all, total } = await discogsVersions(masterIds[0], discogsFormat, typedFilters())
+    setVersionsTotal(total || all.length)
     const matched = new Set(results.map((r) => r.id))
     setVersions(all.map((v) => ({ ...v, barcodeMatch: tagBarcodeMatches && matched.has(v.id) })))
     setAlbumHint({ masterId: masterIds[0], name: results[0]?.title || '' })
@@ -210,7 +230,8 @@ function AddAlbumForm({
     setDiscogsError('')
     if (!item.masterId) return
     setDiscogsSearching(true)
-    const { versions: all } = await discogsVersions(item.masterId, discogsFormat)
+    const { versions: all, total } = await discogsVersions(item.masterId, discogsFormat, typedFilters())
+    setVersionsTotal(total || (all ? all.length : null))
     setDiscogsSearching(false)
     if (!all || all.length === 0) {
       setDiscogsError('No pressings found for that album on Discogs. You can still fill in the details by hand.')
@@ -218,7 +239,7 @@ function AddAlbumForm({
     }
     setVersions(all.map((v) => ({ ...v, barcodeMatch: false })))
     setAlbumHint({ masterId: item.masterId, name: `${item.artist} - ${item.title}` })
-    setScanNote(`${all.length} pressing${all.length === 1 ? '' : 's'} of this album found. Answer the questions below to pick yours.`)
+    setScanNote(`${total && total > all.length ? `${all.length} of ${total}` : all.length} pressing${all.length === 1 ? '' : 's'} of this album loaded. Answer the questions below to pick yours.`)
   }
 
   // The seller can't tell which pressing: keep the album, mark the pressing unconfirmed.
@@ -503,6 +524,14 @@ function AddAlbumForm({
         </p>
       )}
 
+      {discogsMeta.discogsReleaseId && (
+        <SelectedPressingPreview
+          key={discogsMeta.discogsReleaseId}
+          releaseId={discogsMeta.discogsReleaseId}
+          details={{ label, catno: catalogNumber, year: pressingYear, country: pressingCountry, format, edition, vinylColor }}
+        />
+      )}
+
       {discogsResults.length > 0 && versions.length === 0 && (
         <div className="flex flex-col gap-1.5 mb-3 max-w-xl max-h-80 overflow-y-auto">
           {discogsResults.map((result) => (
@@ -538,6 +567,9 @@ function AddAlbumForm({
           key={albumHint?.masterId || 'finder'}
           candidates={versions}
           barcode={barcode}
+          total={versionsTotal}
+          entered={{ label, catno: catalogNumber, country: pressingCountry, year: pressingYear, edition, runout: deadwax || matrixNumber }}
+          onLoadMore={(label.trim() || pressingCountry.trim() || pressingYear) ? handleLoadMore : null}
           loadingId={discogsLoadingId}
           onPick={handleSelectRelease}
           onCantTell={handleCantTell}

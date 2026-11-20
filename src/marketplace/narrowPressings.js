@@ -142,3 +142,51 @@ export function crossCheck(candidate, mbReleases) {
   }
   return best
 }
+
+// ---------- Match against what the user already typed ----------
+
+const nz = (s) => String(s || '').toLowerCase().replace(/[^a-z0-9]/g, '')
+
+// Catalogue numbers are typed many ways ("MFSL-017", "MFSL 1-017"). Exact after
+// stripping punctuation counts as a match. Same letters with digits that line up at the
+// end (017 vs 1-017) counts as similar.
+function catnoMatch(entered, candidate) {
+  const e = nz(entered)
+  if (!e || !candidate) return null
+  const parts = String(candidate).split(/[,/]/).map(nz).filter(Boolean)
+  let best = null
+  for (const c of parts) {
+    if (c === e || (Math.min(c.length, e.length) >= 5 && (c.includes(e) || e.includes(c)))) return 'exact'
+    const ea = (e.match(/^[a-z]+/) || [''])[0]
+    const ca = (c.match(/^[a-z]+/) || [''])[0]
+    const ed = e.slice(ea.length)
+    const cd = c.slice(ca.length)
+    if (ea.length >= 2 && ea === ca && Math.min(ed.length, cd.length) >= 3 && (cd.endsWith(ed) || ed.endsWith(cd))) best = 'similar'
+  }
+  return best
+}
+
+// How well one pressing fits what was typed in the form. entered: { label, catno,
+// country, year, edition }. Returns { score, fields: [...] }.
+export function matchEntered(c, entered) {
+  const fields = []
+  let score = 0
+  if (!entered) return { score, fields }
+  const cat = catnoMatch(entered.catno, c.catno)
+  if (cat === 'exact') { score += 4; fields.push('catalogue no.') }
+  else if (cat === 'similar') { score += 2.5; fields.push('catalogue no. (similar)') }
+  const el = nz(entered.label)
+  const cl = nz(c.label)
+  if (el.length >= 3 && cl && (cl.includes(el) || el.includes(cl))) { score += 2; fields.push('label') }
+  const ec = nz(entered.country)
+  if (ec && nz(c.country) === ec) { score += 1; fields.push('country') }
+  const ey = parseInt(String(entered.year || '').slice(0, 4), 10)
+  if (ey && c.yearNum === ey) { score += 1; fields.push('year') }
+  const words = String(entered.edition || '').toLowerCase().split(/[\s,/]+/).filter((w) => w.length >= 4)
+  if (words.length) {
+    const hay = [...c.tokens].join(' ').toLowerCase()
+    const hit = words.filter((w) => hay.includes(w)).length
+    if (hit) { score += Math.min(hit, 2); fields.push('edition') }
+  }
+  return { score, fields }
+}

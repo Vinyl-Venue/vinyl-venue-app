@@ -230,16 +230,50 @@ export async function attachRarity(albums) {
 // AddAlbumForm (adding a new album) and AlbumModal (finding a tracklist for
 // an existing one).
 
-// Every pressing of one album (Discogs "master"), oldest first.
-export async function discogsVersions(masterId, format = 'Vinyl') {
-  const params = new URLSearchParams()
-  params.set('action', 'versions')
-  params.set('master_id', String(masterId))
-  params.set('format', format)
-  const { data, error } = await supabase.functions.invoke(`discogs-lookup?${params.toString()}`, { method: 'GET' })
-  if (error) return { versions: [], error: 'Could not load the other pressings.' }
-  if (data.error) return { versions: [], error: data.error }
-  return { versions: data.versions || [], error: null }
+// Pressings of one album (Discogs "master"). Loads up to maxPages pages of 100
+// (oldest first). Big albums have far more than that, so label / country /
+// released (year) can be passed to also pull in the pressings that match what the
+// user typed. Returns { versions, total, error }: total is how many Discogs lists.
+export async function discogsVersions(masterId, format = 'Vinyl', opts = {}) {
+  const { maxPages = 6, label = '', country = '', released = '', skipBase = false } = opts
+  const fetchPage = async (page, filters = {}) => {
+    const params = new URLSearchParams()
+    params.set('action', 'versions')
+    params.set('master_id', String(masterId))
+    params.set('format', format)
+    params.set('page', String(page))
+    for (const [k, v] of Object.entries(filters)) if (v) params.set(k, String(v))
+    const { data, error } = await supabase.functions.invoke(`discogs-lookup?${params.toString()}`, { method: 'GET' })
+    if (error) return { error: 'Could not load the other pressings.' }
+    if (data.error) return { error: data.error }
+    const list = data.versions || []
+    return { versions: list, pagination: data.pagination || { page, pages: 1, items: list.length } }
+  }
+
+  const byId = new Map()
+  const add = (list) => { for (const v of list) if (!byId.has(v.id)) byId.set(v.id, v) }
+  let total = 0
+
+  if (!skipBase) {
+    const first = await fetchPage(1)
+    if (first.error) return { versions: [], total: 0, error: first.error }
+    add(first.versions)
+    total = first.pagination.items
+    const pages = Math.min(first.pagination.pages, maxPages)
+    if (pages > 1) {
+      const rest = await Promise.all(Array.from({ length: pages - 1 }, (_, i) => fetchPage(i + 2)))
+      for (const r of rest) if (!r.error) add(r.versions)
+    }
+  }
+
+  const filters = { label, country, released }
+  if (Object.values(filters).some(Boolean) && (skipBase || byId.size < total)) {
+    const filtered = await fetchPage(1, filters)
+    if (!filtered.error) add(filtered.versions)
+  }
+
+  const versions = [...byId.values()].sort((a, b) => String(a.year || '').localeCompare(String(b.year || '')))
+  return { versions, total: Math.max(total, versions.length), error: null }
 }
 
 export async function discogsSearch(title, artist, extra = {}) {
