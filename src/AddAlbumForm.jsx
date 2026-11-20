@@ -89,6 +89,8 @@ function AddAlbumForm({
   const [discogsError, setDiscogsError] = useState('')
   const [versions, setVersions] = useState([])
   const [versionsTotal, setVersionsTotal] = useState(null)
+  const [saving, setSaving] = useState(false)
+  const [submitError, setSubmitError] = useState('')
   const [albumHint, setAlbumHint] = useState(null)
   const [scanning, setScanning] = useState(false)
   const [scanNote, setScanNote] = useState('')
@@ -429,10 +431,22 @@ function AddAlbumForm({
       ...discogsMeta
     }
 
-    if (editingAlbum) {
-      await onUpdateAlbum({ ...albumData, id: editingAlbum.id })
-    } else {
-      await onAddAlbum(albumData)
+    setSaving(true)
+    setSubmitError('')
+    let result
+    try {
+      result = editingAlbum
+        ? await onUpdateAlbum({ ...albumData, id: editingAlbum.id })
+        : await onAddAlbum(albumData)
+    } catch (err) {
+      result = { ok: false, error: err instanceof Error ? err.message : 'Unknown error' }
+    }
+    setSaving(false)
+
+    // Only an explicit failure keeps the form open, so everything typed is still here to retry.
+    if (result && result.ok === false) {
+      setSubmitError(result.error || 'Something went wrong.')
+      return
     }
 
     resetForm()
@@ -671,9 +685,10 @@ function AddAlbumForm({
         )}
         <button
           type="submit"
-          className="bg-accent text-bg border-0 px-4 py-2 rounded font-sans text-sm cursor-pointer"
+          disabled={saving}
+          className="bg-accent text-bg border-0 px-4 py-2 rounded font-sans text-sm cursor-pointer disabled:opacity-60"
         >
-          {editingAlbum ? 'Save changes' : 'Add to shelf'}
+          {saving ? 'Saving...' : editingAlbum ? 'Save changes' : 'Add to shelf'}
         </button>
         {editingAlbum && (
           <button
@@ -685,6 +700,11 @@ function AddAlbumForm({
           </button>
         )}
       </div>
+      {submitError && (
+        <p role="alert" className="font-sans text-sm text-[#b7791f] mt-1 mb-2">
+          Couldn&rsquo;t save this album: {submitError} Everything you entered is still here, so you can try again.
+        </p>
+      )}
     </form>
   )
 }

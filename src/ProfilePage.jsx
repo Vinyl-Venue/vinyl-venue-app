@@ -232,10 +232,11 @@ function ProfilePage() {
 
     if (error) {
       console.error('Error adding album:', error.message)
-      return
+      return { ok: false, error: error.message }
     }
 
     setAlbums([rowToAlbum(data[0]), ...albums])
+    return { ok: true }
   }
 
   async function handleUpdateAlbum(updatedAlbum) {
@@ -596,7 +597,7 @@ function ProfilePage() {
           {isOwnProfile && (showAddAlbum || editingAlbum) && (
             <div className="pb-4 border-b border-border">
               <AddAlbumForm
-                onAddAlbum={(album) => { handleAddAlbum(album); setShowAddAlbum(false) }}
+                onAddAlbum={async (album) => { const result = await handleAddAlbum(album); if (result?.ok !== false) setShowAddAlbum(false); return result }}
                 onUpdateAlbum={(album) => { handleUpdateAlbum(album); setShowAddAlbum(false) }}
                 editingAlbum={editingAlbum}
                 onCancelEdit={() => { setEditingAlbum(null); setShowAddAlbum(false) }}
