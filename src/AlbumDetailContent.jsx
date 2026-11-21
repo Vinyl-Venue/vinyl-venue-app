@@ -7,6 +7,7 @@ import PressingDetails from './marketplace/PressingDetails'
 import MarketPanel, { PriceSuggestion } from './marketplace/MarketPanel'
 import { pressingExtrasToRow } from './profile/profileData'
 import AlbumHistory from './history/AlbumHistory'
+import TracklistPhoto from './TracklistPhoto'
 
 const PLACEHOLDER_COVER = "https://placehold.co/500x500/E4E2DC/E4E2DC"
 const PLACEHOLDER_SMALL = "https://placehold.co/32x32/E4E2DC/E4E2DC"
@@ -134,6 +135,16 @@ function AlbumDetailContent({ album, onClose, isOwnAlbum = false }) {
     setLocalSleeveCondition(sleeveConditionInput)
     setLocalMediaCondition(mediaConditionInput)
     setEditingCondition(false)
+  }
+
+  async function handleSavePhotoTracklist(tracks) {
+    const { error: updateError } = await supabase.from('albums').update({ tracklist: tracks }).eq('id', album.id)
+    if (updateError) {
+      console.error('Error saving tracklist:', updateError.message)
+      return { ok: false, error: 'Could not save. You may not have permission to edit this album.' }
+    }
+    setLocalTracklist(tracks)
+    return { ok: true }
   }
 
   async function handleFindTracklist() {
@@ -554,12 +565,15 @@ function AlbumDetailContent({ album, onClose, isOwnAlbum = false }) {
           ) : isOwnAlbum ? (
             <div className="mb-4">
               {!showTrackFinder ? (
+                <>
                 <button
                   onClick={() => { setShowTrackFinder(true); handleFindTracklist() }}
                   className="w-full bg-transparent border border-border text-text-muted px-2 py-2 rounded font-sans text-sm cursor-pointer hover:border-accent hover:text-accent"
                 >
                   Find on Discogs ({localImageUrl ? 'tracklist & credits' : 'tracklist, credits & cover art'})
                 </button>
+                <TracklistPhoto onSave={handleSavePhotoTracklist} />
+                </>
               ) : (
                 <div className="font-sans">
                   {trackSearching && <p className="text-sm text-text-muted">Searching...</p>}
