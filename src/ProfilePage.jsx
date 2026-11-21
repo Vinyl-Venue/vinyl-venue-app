@@ -18,7 +18,7 @@ import ScanCrateModal from './ScanCrateModal'
 import WelcomeChecklist from './WelcomeChecklist'
 import ActivityStrip from './ActivityStrip'
 import { supabase } from './supabaseClient'
-import { acquisitionToEvent, hasAcquisition } from './history/albumHistory'
+import { acquisitionToEvent, hasAcquisition } from './history/eventData'
 import { useAuth } from './AuthContext'
 import { attachRarity, displayNameFor, fuzzyMatchKey, matchKey } from './utils'
 import {

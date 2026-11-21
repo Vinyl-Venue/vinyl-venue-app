@@ -1,4 +1,4 @@
-import { SOURCES } from './albumHistory'
+import { SOURCES } from './eventData'
 
 const field = 'bg-surface border border-border text-text px-3 py-2 rounded font-sans text-sm'
 

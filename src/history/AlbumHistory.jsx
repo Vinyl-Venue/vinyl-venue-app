@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useAuth } from '../AuthContext'
 import AcquisitionFields from './AcquisitionFields'
-import { EMPTY_ACQUISITION, acquisitionToEvent, addEvent, deleteEvent, eventTitle, fetchEvents, formatEventDate, hasAcquisition, sortEvents } from './albumHistory'
+import { EMPTY_ACQUISITION, acquisitionToEvent, addEvent, deleteEvent, eventTitle, fetchEvents, formatEventDate, hasAcquisition, sortEvents } from './eventData'
 
 // Life cycle of one physical copy. Shown to its owner only for now.
 function AlbumHistory({ album }) {

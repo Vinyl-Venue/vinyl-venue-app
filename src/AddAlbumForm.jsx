@@ -8,7 +8,7 @@ import SelectWithCustom from './SelectWithCustom'
 import SpecialTagsInput from './SpecialTagsInput'
 import { supabase } from './supabaseClient'
 import AcquisitionFields from './history/AcquisitionFields'
-import { EMPTY_ACQUISITION, hasAcquisition } from './history/albumHistory'
+import { EMPTY_ACQUISITION, hasAcquisition } from './history/eventData'
 import { discogsSearch, discogsFetchRelease, discogsVersions } from './utils'
 
 const CONDITION_OPTIONS = [
