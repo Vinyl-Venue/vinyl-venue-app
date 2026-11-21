@@ -37,7 +37,8 @@ export function acquisitionToEvent(a, eventType = 'acquired') {
 export function eventTitle(e) {
   const verb = { acquired: 'Acquired', sold: 'Sold', traded: 'Traded', gift: 'Given as a gift', note: 'Note', other: 'Event' }[e.event_type] || 'Event'
   const src = sourceLabel(e.source)
-  const where = e.place ? (src && e.source !== 'other' ? `${src} — ${e.place}` : e.place) : src
+  const place = e.place === 'Vinyl Venue' ? '' : e.place
+  const where = place ? (src && e.source !== 'other' ? `${src} — ${place}` : place) : src
   return where ? `${verb}: ${where}` : verb
 }
 
@@ -72,6 +73,13 @@ export async function addEvent({ copyId, albumId, userId, event }) {
     .select()
     .single()
   return error ? { event: null, error: error.message } : { event: data, error: '' }
+}
+
+// Who owned this copy before the current owner: names and hand-over dates only.
+export async function fetchPreviousOwners(copyId) {
+  if (!copyId) return { owners: [], error: '' }
+  const { data, error } = await supabase.rpc('copy_previous_owners', { p_copy_id: copyId })
+  return error ? { owners: [], error: error.message } : { owners: data || [], error: '' }
 }
 
 export async function deleteEvent(id) {

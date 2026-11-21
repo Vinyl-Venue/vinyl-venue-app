@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useAuth } from '../AuthContext'
 import AcquisitionFields from './AcquisitionFields'
-import { EMPTY_ACQUISITION, acquisitionToEvent, addEvent, deleteEvent, eventTitle, fetchEvents, formatEventDate, hasAcquisition, sortEvents } from './eventData'
+import { EMPTY_ACQUISITION, acquisitionToEvent, addEvent, deleteEvent, eventTitle, fetchEvents, fetchPreviousOwners, formatEventDate, hasAcquisition, sortEvents } from './eventData'
 
 // Life cycle of one physical copy. Shown to its owner only for now.
 function AlbumHistory({ album }) {
@@ -12,11 +12,18 @@ function AlbumHistory({ album }) {
   const [adding, setAdding] = useState(false)
   const [draft, setDraft] = useState(EMPTY_ACQUISITION)
   const [saving, setSaving] = useState(false)
+  const [owners, setOwners] = useState([])
 
   useEffect(() => {
     let off = false
     setLoading(true)
     fetchEvents(album.copyId).then(({ events: list, error: err }) => { if (!off) { setEvents(list); setError(err); setLoading(false) } })
+    return () => { off = true }
+  }, [album.copyId])
+
+  useEffect(() => {
+    let off = false
+    fetchPreviousOwners(album.copyId).then(({ owners: list }) => { if (!off) setOwners(list) })
     return () => { off = true }
   }, [album.copyId])
 
@@ -41,6 +48,16 @@ function AlbumHistory({ album }) {
         <h3 className="m-0 text-sm font-semibold text-text">History of this copy</h3>
         {!adding && <button type="button" onClick={() => setAdding(true)} className="text-[12px] text-accent bg-transparent border-0 underline cursor-pointer p-0">Add entry</button>}
       </div>
+      {owners.length > 0 && (
+        <div className="mb-3">
+          <p className="m-0 text-[11px] font-mono tracking-wider uppercase text-text-faint">Previous owners</p>
+          <ul className="list-none m-0 p-0">
+            {owners.map((o, i) => (
+              <li key={i} className="text-[13px] text-text">{o.owner_name} <span className="text-text-muted text-[12px]">&middot; {o.how === 'traded' ? 'traded it away' : 'sold it'} {o.handed_on ? formatEventDate(o.handed_on) : ''}</span></li>
+            ))}
+          </ul>
+        </div>
+      )}
       {loading && <p className="m-0 text-[12px] text-text-faint">Loading&hellip;</p>}
       {!loading && events.length === 0 && !adding && (
         <p className="m-0 text-[12px] text-text-muted">No history yet. Record where and when you got it, and what you paid. Only you can see this.</p>
@@ -52,7 +69,7 @@ function AlbumHistory({ album }) {
               <span className="absolute -left-[5px] top-1.5 w-2 h-2 rounded-full bg-accent" />
               <p className="m-0 text-[11px] font-mono text-text-faint">{formatEventDate(e.occurred_on)}</p>
               <p className="m-0 text-[13px] text-text font-semibold">{eventTitle(e)}</p>
-              {e.price != null && <p className="m-0 text-[12px] text-text-muted">Paid ${Number(e.price).toFixed(2)} <span className="text-text-faint">(private{e.price_in_stats ? '; counted anonymously in market stats' : ''})</span></p>}
+              {e.price != null && <p className="m-0 text-[12px] text-text-muted">{e.event_type === 'sold' || e.event_type === 'traded' ? 'Sold for' : 'Paid'} ${Number(e.price).toFixed(2)} <span className="text-text-faint">(private{e.price_in_stats ? '; counted anonymously in market stats' : ''})</span></p>}
               {e.notes && <p className="m-0 text-[12px] text-text-muted">{e.notes}</p>}
               <button type="button" onClick={() => remove(e.id)} aria-label="Delete history entry" className="text-[11px] text-text-faint bg-transparent border-0 underline cursor-pointer p-0">Delete</button>
             </li>
