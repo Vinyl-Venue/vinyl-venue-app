@@ -309,6 +309,32 @@ function AddAlbumForm({
     await searchByBarcode(code)
   }
 
+  // Search Discogs by the text etched into the runout. Exact phrase first, then a looser match.
+  async function searchByRunout(text) {
+    setScanNote('')
+    setDiscogsSearching(true)
+    setDiscogsError('')
+    setDiscogsResults([])
+    setVersions([])
+    let { results, error } = await discogsSearch('', '', { runout: text, format: discogsFormat })
+    let loose = false
+    if (!error && results.length === 0) {
+      loose = true
+      ;({ results, error } = await discogsSearch('', '', { q: text, format: discogsFormat }))
+    }
+    setDiscogsSearching(false)
+    if (error) { setDiscogsError(error); return }
+    if (results.length === 0) {
+      setDiscogsError(`Nothing on Discogs lists "${text}". Check the spelling, or add the title and artist and search again.`)
+      return
+    }
+    setDiscogsResults(results)
+    setScanNote(
+      `${results.length} pressing${results.length === 1 ? '' : 's'} on Discogs ${loose ? 'loosely match' : 'list'} "${text}" in their runout or details. ` +
+      'Check the title, year and country against your record, then pick the one that matches. Adding the title and artist narrows it further.'
+    )
+  }
+
   async function handleDiscogsSearch() {
     // A typed barcode is enough on its own when there's no title or artist yet.
     if (title.trim() === '' && artist.trim() === '' && barcode.trim() !== '') {
@@ -316,8 +342,14 @@ function AddAlbumForm({
       await searchByBarcode(barcode.replace(/\D/g, ''))
       return
     }
+    // Runout / matrix text alone is enough too: Discogs indexes it, so it can identify the pressing.
+    const runoutText = (deadwax || matrixNumber || '').split(/\r?\n/)[0].trim()
+    if (title.trim() === '' && artist.trim() === '' && runoutText !== '') {
+      await searchByRunout(runoutText)
+      return
+    }
     if (title.trim() === '' && artist.trim() === '') {
-      setDiscogsError('Enter a title, artist or barcode first.')
+      setDiscogsError('Enter a title, artist, barcode or the runout text first.')
       return
     }
     setScanNote('')
