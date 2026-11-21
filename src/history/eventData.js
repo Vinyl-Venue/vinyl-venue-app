@@ -82,6 +82,18 @@ export async function fetchPreviousOwners(copyId) {
   return error ? { owners: [], error: error.message } : { owners: data || [], error: '' }
 }
 
+export async function setEventShared(id, shared) {
+  const { error } = await supabase.from('album_events').update({ shared }).eq('id', id)
+  return { error: error ? error.message : '' }
+}
+
+// What a buyer may see on a listing: earlier owners and the seller's shared entries. No prices.
+export async function fetchListingProvenance(listingId) {
+  if (!listingId) return { items: [], error: '' }
+  const { data, error } = await supabase.rpc('listing_provenance', { p_listing_id: listingId })
+  return error ? { items: [], error: error.message } : { items: data || [], error: '' }
+}
+
 export async function deleteEvent(id) {
   const { error } = await supabase.from('album_events').delete().eq('id', id)
   return { error: error ? error.message : '' }

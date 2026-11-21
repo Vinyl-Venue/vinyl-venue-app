@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useAuth } from '../AuthContext'
 import AcquisitionFields from './AcquisitionFields'
-import { EMPTY_ACQUISITION, acquisitionToEvent, addEvent, deleteEvent, eventTitle, fetchEvents, fetchPreviousOwners, formatEventDate, hasAcquisition, sortEvents } from './eventData'
+import { EMPTY_ACQUISITION, acquisitionToEvent, addEvent, deleteEvent, eventTitle, fetchEvents, fetchPreviousOwners, formatEventDate, setEventShared, hasAcquisition, sortEvents } from './eventData'
 
 // Life cycle of one physical copy. Shown to its owner only for now.
 function AlbumHistory({ album }) {
@@ -34,6 +34,13 @@ function AlbumHistory({ album }) {
     setSaving(false)
     if (err) { setError(err); return }
     setEvents((list) => sortEvents([...list, event])); setDraft(EMPTY_ACQUISITION); setAdding(false)
+  }
+
+  async function toggleShared(e) {
+    const next = !e.shared
+    setEvents((list) => list.map((x) => (x.id === e.id ? { ...x, shared: next } : x)))
+    const { error: err } = await setEventShared(e.id, next)
+    if (err) { setError(err); setEvents((list) => list.map((x) => (x.id === e.id ? { ...x, shared: !next } : x))) }
   }
 
   async function remove(id) {
@@ -71,6 +78,10 @@ function AlbumHistory({ album }) {
               <p className="m-0 text-[13px] text-text font-semibold">{eventTitle(e)}</p>
               {e.price != null && <p className="m-0 text-[12px] text-text-muted">{e.event_type === 'sold' || e.event_type === 'traded' ? 'Sold for' : 'Paid'} ${Number(e.price).toFixed(2)} <span className="text-text-faint">(private{e.price_in_stats ? '; counted anonymously in market stats' : ''})</span></p>}
               {e.notes && <p className="m-0 text-[12px] text-text-muted">{e.notes}</p>}
+              <label className="flex items-center gap-1.5 text-[11px] text-text-muted cursor-pointer">
+                <input type="checkbox" checked={!!e.shared} onChange={() => toggleShared(e)} />
+                Show on my listings of this copy (price is never shown)
+              </label>
               <button type="button" onClick={() => remove(e.id)} aria-label="Delete history entry" className="text-[11px] text-text-faint bg-transparent border-0 underline cursor-pointer p-0">Delete</button>
             </li>
           ))}

@@ -6,6 +6,7 @@ import TradeOfferModal from './TradeOfferModal'
 import AuctionCountdown from './AuctionCountdown'
 import ReportButton from './ReportButton'
 import PressingDetails from './marketplace/PressingDetails'
+import CopyProvenance from './history/CopyProvenance'
 import OtherPressings from './marketplace/OtherPressings'
 import ListingPriceContext from './marketplace/ListingPriceContext'
 
@@ -328,6 +329,7 @@ function ListingDetailContent({ listing, currentUserId, onMarkSold, onCancelList
         )}
 
         <PressingDetails item={listing} notesLabel="Seller notes" />
+        <CopyProvenance listingId={listing.id} />
 
         <ListingPhotoGallery listingId={listing.id} />
 
