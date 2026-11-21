@@ -50,6 +50,15 @@ export async function loadVenueBreakdown(item) {
   return error ? null : data
 }
 
+// What collectors say they paid for this pressing. The database returns nothing unless at least
+// 3 different people contributed, and never anything that identifies a person or a copy.
+export async function loadReportedPrices(discogsReleaseId) {
+  const rid = Number(discogsReleaseId) || null
+  if (!rid) return null
+  const { data, error } = await supabase.rpc('reported_price_stats', { p_release_id: rid })
+  return error || !data || !data.enough ? null : data
+}
+
 export async function checkIsAdmin(userId) {
   if (!userId) return false
   const { data } = await supabase.from('admins').select('user_id').eq('user_id', userId).maybeSingle()

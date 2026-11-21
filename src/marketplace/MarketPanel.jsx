@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useAuth } from '../AuthContext'
 import { sleeveFactor, conditionFactor, sleevePenaltyText } from './conditionFactors'
-import { loadMarket, loadPressingPrice, loadVenueIndex, loadVenueBreakdown, checkIsAdmin, suggestedPriceFor, money, loadGradeStats, gradeRow, venueArgs } from './marketData'
+import { loadMarket, loadPressingPrice, loadVenueIndex, loadVenueBreakdown, checkIsAdmin, suggestedPriceFor, money, loadGradeStats, gradeRow, venueArgs, loadReportedPrices } from './marketData'
 import { scoreRarity } from './rarity'
 import GradePriceTable from './GradePriceTable'
 
@@ -36,7 +36,34 @@ function VenueBreakdown({ data }) {
   )
 }
 
-export function MarketView({ item, market, showSuggestion = true, venue = null, isAdmin = false, breakdown = null, gradeStats = null }) {
+const SOURCE_LABELS = { store: 'Shops (in store and online)', marketplace: 'Marketplaces', other: 'Other sources' }
+
+// Self-reported purchase prices. Lower confidence than verified sales, and labelled that way.
+export function ReportedPrices({ stats, currency = 'USD' }) {
+  if (!stats || !stats.enough) return null
+  return (
+    <div className="mt-3 pt-3 border-t border-border">
+      <p className="m-0 mb-1 font-mono text-[10px] tracking-wider uppercase text-text-faint">What collectors paid</p>
+      <p className="m-0 text-[13px] text-text">
+        Typically <strong>{money(stats.median, currency)}</strong>
+        <span className="text-text-muted"> (middle half {money(stats.p25, currency)}&ndash;{money(stats.p75, currency)})</span>
+      </p>
+      {stats.low != null && stats.high != null && (
+        <p className="m-0 text-[12px] text-text-muted">Range {money(stats.low, currency)}&ndash;{money(stats.high, currency)}</p>
+      )}
+      {stats.by_source && stats.by_source.length > 1 && (
+        <ul className="m-0 mt-1 p-0 list-none text-[12px] text-text-muted">
+          {stats.by_source.map((s) => <li key={s.group}>{SOURCE_LABELS[s.group] || s.group}: {money(s.median, currency)} median</li>)}
+        </ul>
+      )}
+      <p className="m-0 mt-1 text-[11px] text-text-faint">
+        From {stats.users} collectors who chose to share what they paid, anonymously. Self-reported, so treat it as lower confidence than verified sales.
+      </p>
+    </div>
+  )
+}
+
+export function MarketView({ item, market, showSuggestion = true, venue = null, isAdmin = false, breakdown = null, gradeStats = null, reported = null }) {
   const rarity = scoreRarity(item, market)
   const suggestion = showSuggestion ? suggestedPriceFor(market, item.mediaCondition, item.sleeveCondition) : null
   const sleeveNote = sleevePenaltyText(item.sleeveCondition)
@@ -96,6 +123,7 @@ export function MarketView({ item, market, showSuggestion = true, venue = null, 
         <p className="m-0 mt-2 text-[11px] text-text-faint">Discogs data, refreshed daily. Prices are a guide, not a guarantee.</p>
       )}
       {gradeStats && <GradePriceTable stats={gradeStats} highlightGrade={item.mediaCondition} sleeveGrade={item.sleeveCondition} />}
+      <ReportedPrices stats={reported} currency={market?.currency || 'USD'} />
     </div>
   )
 }
@@ -109,12 +137,14 @@ function MarketPanel({ item, showSuggestion = true }) {
   const [isAdmin, setIsAdmin] = useState(false)
   const [breakdown, setBreakdown] = useState(null)
   const [gradeStats, setGradeStats] = useState(null)
+  const [reported, setReported] = useState(null)
   const id = item?.discogsReleaseId
 
   useEffect(() => {
     let cancelled = false
-    setMarket(null); setVenue(null); setBreakdown(null); setGradeStats(null)
+    setMarket(null); setVenue(null); setBreakdown(null); setGradeStats(null); setReported(null)
     if (id) {
+      loadReportedPrices(id).then((r) => { if (!cancelled) setReported(r) })
       // Grade stats read the Discogs cache, so load them after the market call has refreshed it.
       loadMarket(id).then((m) => {
         if (cancelled) return
@@ -160,7 +190,7 @@ function MarketPanel({ item, showSuggestion = true }) {
       </div>
     )
   }
-  return <MarketView item={item} market={market} showSuggestion={showSuggestion} venue={venue} isAdmin={isAdmin} breakdown={breakdown} gradeStats={gradeStats} />
+  return <MarketView item={item} market={market} showSuggestion={showSuggestion} venue={venue} isAdmin={isAdmin} breakdown={breakdown} gradeStats={gradeStats} reported={reported} />
 }
 
 export default MarketPanel
