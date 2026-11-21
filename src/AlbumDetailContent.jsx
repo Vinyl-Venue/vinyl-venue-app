@@ -6,6 +6,7 @@ import ListingPhotoUploader from './ListingPhotoUploader'
 import PressingDetails from './marketplace/PressingDetails'
 import MarketPanel, { PriceSuggestion } from './marketplace/MarketPanel'
 import { pressingExtrasToRow } from './profile/profileData'
+import AlbumHistory from './history/AlbumHistory'
 
 const PLACEHOLDER_COVER = "https://placehold.co/500x500/E4E2DC/E4E2DC"
 const PLACEHOLDER_SMALL = "https://placehold.co/32x32/E4E2DC/E4E2DC"
@@ -518,6 +519,8 @@ function AlbumDetailContent({ album, onClose, isOwnAlbum = false }) {
               </>
             )}
           </div>
+
+          {isOwnAlbum && album.copyId && <AlbumHistory album={album} />}
 
           {hasPressingDetails && (
             <>

@@ -3,6 +3,7 @@ import { supabase } from '../supabaseClient'
 export function rowToAlbum(row) {
   return {
     id: row.id,
+    copyId: row.copy_id,
     title: row.title,
     artist: row.artist,
     year: row.year,

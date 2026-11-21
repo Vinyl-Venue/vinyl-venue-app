@@ -18,6 +18,7 @@ import ScanCrateModal from './ScanCrateModal'
 import WelcomeChecklist from './WelcomeChecklist'
 import ActivityStrip from './ActivityStrip'
 import { supabase } from './supabaseClient'
+import { acquisitionToEvent, hasAcquisition } from './history/albumHistory'
 import { useAuth } from './AuthContext'
 import { attachRarity, displayNameFor, fuzzyMatchKey, matchKey } from './utils'
 import {
@@ -220,7 +221,9 @@ function ProfilePage() {
   async function handleAddAlbum(newAlbum) {
     const uploadedUrl = await uploadAlbumCover(newAlbum.imageFile, user.id)
 
+    const acquisition = newAlbum.acquisition
     const albumForDb = { ...newAlbum, imageUrl: uploadedUrl || newAlbum.discogsImageUrl || '' }
+    delete albumForDb.acquisition
     delete albumForDb.imageFile
     delete albumForDb.existingImageUrl
     delete albumForDb.discogsImageUrl
@@ -236,6 +239,14 @@ function ProfilePage() {
     }
 
     setAlbums([rowToAlbum(data[0]), ...albums])
+    // History is optional; a failure here must not undo or hide the saved album.
+    if (hasAcquisition(acquisition)) {
+      const { error: evError } = await supabase.from('album_events').insert({ ...acquisitionToEvent(acquisition), copy_id: data[0].copy_id, album_id: data[0].id, user_id: user.id })
+      if (evError) {
+        console.error('Error saving album history:', evError.message)
+        return { ok: true, warning: 'Album saved, but its history entry could not be saved. You can add it from the album page.' }
+      }
+    }
     return { ok: true }
   }
 

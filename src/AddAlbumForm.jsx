@@ -7,6 +7,8 @@ import SelectedPressingPreview from './marketplace/SelectedPressingPreview'
 import SelectWithCustom from './SelectWithCustom'
 import SpecialTagsInput from './SpecialTagsInput'
 import { supabase } from './supabaseClient'
+import AcquisitionFields from './history/AcquisitionFields'
+import { EMPTY_ACQUISITION, hasAcquisition } from './history/albumHistory'
 import { discogsSearch, discogsFetchRelease, discogsVersions } from './utils'
 
 const CONDITION_OPTIONS = [
@@ -79,6 +81,7 @@ function AddAlbumForm({
   const [pressingYear, setPressingYear] = useState('')
   const [barcode, setBarcode] = useState('')
   const [notes, setNotes] = useState('')
+  const [acquisition, setAcquisition] = useState(EMPTY_ACQUISITION)
   const [sleeveCondition, setSleeveCondition] = useState('')
   const [mediaCondition, setMediaCondition] = useState('')
   const [specialTags, setSpecialTags] = useState([])
@@ -160,6 +163,7 @@ function AddAlbumForm({
     setPressingYear('')
     setBarcode('')
     setNotes('')
+    setAcquisition(EMPTY_ACQUISITION)
     setSleeveCondition('')
     setMediaCondition('')
     setSpecialTags([])
@@ -430,6 +434,7 @@ function AddAlbumForm({
       specialTags: specialTags,
       ...discogsMeta
     }
+    if (!editingAlbum && hasAcquisition(acquisition)) albumData.acquisition = acquisition
 
     setSaving(true)
     setSubmitError('')
@@ -670,6 +675,7 @@ function AddAlbumForm({
           ))}
         </select>
       </div>
+      {!editingAlbum && <AcquisitionFields value={acquisition} onChange={setAcquisition} />}
       <div className="flex gap-2.5 items-center mb-2.5 flex-wrap">
         <SpecialTagsInput selectedTags={specialTags} onChange={setSpecialTags} />
       </div>
