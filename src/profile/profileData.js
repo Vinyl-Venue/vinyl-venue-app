@@ -145,6 +145,7 @@ export function rowToWishlistItem(row) {
     deadwax: row.deadwax,
     sleeveCondition: row.sleeve_condition,
     mediaCondition: row.media_condition,
+    discogsReleaseId: row.discogs_release_id || null,
     specialTags: row.special_tags || []
   }
 }
@@ -163,6 +164,7 @@ export function wishlistItemToRow(item) {
     deadwax: item.deadwax,
     sleeve_condition: item.sleeveCondition,
     media_condition: item.mediaCondition,
+    discogs_release_id: item.discogsReleaseId ? Number(item.discogsReleaseId) : null,
     special_tags: item.specialTags
   }
 }

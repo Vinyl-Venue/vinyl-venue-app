@@ -9,6 +9,37 @@ const CONFIDENCE = {
   none: { label: 'Discogs only', tone: '#8a8a8a' }
 }
 
+const DIRECTION = { up: 'trending up', down: 'trending down', flat: 'steady' }
+
+// One line on what is pushing this pressing's price. Everyone sees the direction and size;
+// only admins get the breakdown (the database sends it to them alone).
+function SignalLine({ signal }) {
+  if (!signal || signal.confidence === 'none') return null
+  const pct = Number(signal.adjustment_pct) || 0
+  const size = pct === 0 ? '' : ` (${pct > 0 ? '+' : ''}${pct}% on the estimates)`
+  return (
+    <p className="m-0 mb-1.5 text-[11px] text-text-muted">
+      Demand and speed of sale: {DIRECTION[signal.direction] || 'steady'}{size}. Confidence: {signal.confidence}.
+    </p>
+  )
+}
+
+function SignalBreakdown({ signal }) {
+  const b = signal?.breakdown
+  if (!b) return null
+  const row = (label, v) => <p className="m-0"><span className="text-text">{label}</span>: {v == null ? 'not enough data' : v}</p>
+  return (
+    <div className="mt-1.5 text-[11px] text-text-muted flex flex-col gap-1">
+      <p className="m-0 font-mono text-[10px] tracking-wider uppercase text-text-faint">Price signal breakdown (admin)</p>
+      {row('Demand against supply', b.demand_score)}
+      {row('Speed of sale', b.speed_score)}
+      {row('Sell-through', b.sell_through_score)}
+      {row('Price cuts before sale', b.price_cut_score)}
+      <p className="m-0">Blend {b.blend} on weights {b.weights_used}; capped at ±10%. Effective wanters {b.demand?.effective_wanters} (direct {b.demand?.direct}, shared {b.demand?.shared}), {b.speed?.active_listings} active listing(s), median {b.speed?.median_days_to_sell ?? 'n/a'} days to sell, sell-through {b.speed?.sell_through_pct ?? 'n/a'}%.</p>
+    </div>
+  )
+}
+
 function sourceNote(row) {
   if (row.source === 'discogs') return 'No sales here yet; Discogs suggestion only.'
   const sales = `${row.sales} sale${row.sales === 1 ? '' : 's'} here`
@@ -34,6 +65,7 @@ function GradePriceTable({ stats, highlightGrade, sleeveGrade = null }) {
     <div className="mt-3">
       <p className="m-0 mb-1.5 font-mono text-[10px] tracking-wider uppercase text-text-faint">Price by disc grade, delivered</p>
       <p className="m-0 mb-1.5 text-[11px] text-text-muted">Estimates are for a sleeve at VG+ or better.{sleeveLine}</p>
+      <SignalLine signal={stats.signal} />
       <table className="w-full text-[12px] border-collapse">
         <thead>
           <tr className="text-text-faint text-left">
@@ -74,6 +106,7 @@ function GradePriceTable({ stats, highlightGrade, sleeveGrade = null }) {
           {stats.grades.map((row) => (
             <p key={row.grade} className="m-0"><span className="font-mono text-text">{row.grade}</span>: {sourceNote(row)}.</p>
           ))}
+          <SignalBreakdown signal={stats.signal} />
           <p className="m-0">
             Delivered means price plus shipping{stats.typical_shipping != null
               ? `; estimates add typical shipping of ${money(stats.typical_shipping)} (${stats.shipping_source === 'pressing' ? 'from this pressing’s sales' : 'platform-wide'})`

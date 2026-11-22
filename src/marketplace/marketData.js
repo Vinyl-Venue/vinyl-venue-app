@@ -91,8 +91,29 @@ export async function loadPressingPrice(discogsReleaseId) {
 // estimate and a confidence level. See supabase/pressing_grade_stats.sql.
 export async function loadGradeStats(discogsReleaseId) {
   if (!discogsReleaseId) return null
-  const { data, error } = await supabase.rpc('pressing_grade_stats', { rid: Number(discogsReleaseId) })
-  return error ? null : data
+  const rid = Number(discogsReleaseId)
+  const [stats, sig] = await Promise.all([
+    supabase.rpc('pressing_grade_stats', { rid }),
+    supabase.rpc('pressing_price_signal', { rid })
+  ])
+  if (stats.error || !stats.data) return null
+  return applyPriceSignal(stats.data, sig.error ? null : sig.data)
+}
+
+// Demand, speed of sale, sell-through and price cuts nudge the estimates by at most 10% (decided in the database,
+// see pressing_price_signal). Only the item price moves; shipping and the recent sale range stay as they were.
+// Each row keeps the unadjusted number as base_estimate_item so the admin breakdown can show both.
+export function applyPriceSignal(stats, signal) {
+  if (!stats) return stats
+  const m = signal && signal.confidence !== 'none' ? Number(signal.multiplier) : 1
+  if (!Number.isFinite(m) || m === 1) return { ...stats, signal: signal || null }
+  const grades = (stats.grades || []).map((row) => {
+    if (row.estimate_item == null) return row
+    const item = Math.round(Number(row.estimate_item) * m * 100) / 100
+    const delivered = row.estimate_delivered == null ? null : Math.round((Number(row.estimate_delivered) + (item - Number(row.estimate_item))) * 100) / 100
+    return { ...row, base_estimate_item: row.estimate_item, estimate_item: item, estimate_delivered: delivered }
+  })
+  return { ...stats, grades, signal }
 }
 
 // The stats row for one media grade, or null.

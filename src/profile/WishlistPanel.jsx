@@ -69,7 +69,7 @@ function WishlistPanel({ isOwnProfile, wishlist, requests = null }) {
       </div>
       <div className="bg-surface border border-border rounded p-4 font-sans">
       <p className="text-xs text-text-faint mb-3">
-        {isOwnProfile ? 'Ranked by how much you want it — 1 is your most coveted. Set a price alert on any item to hear when a copy at your price and grade is listed.' : 'Their top-ranked wishlist.'}
+        {isOwnProfile ? 'Ranked by how much you want it — 1 is your most coveted. Set a price alert on any item to hear when a copy at your price and grade is listed. Choose the exact pressing with Find on Discogs and your want counts toward that pressing, not just the album.' : 'Their top-ranked wishlist.'}
       </p>
 
       {isOwnProfile && showAddToWishlist && (
@@ -133,6 +133,7 @@ function WishlistPanel({ isOwnProfile, wishlist, requests = null }) {
                   <strong>{item.title}</strong> — {item.artist}
                 </span>
                 {isMatch && <span className="text-accent text-[10px] font-bold flex-shrink-0">have it</span>}
+                {isOwnProfile && (item.discogsReleaseId || item.discogs_release_id) && <span title="Counts toward this exact pressing" className="text-text-faint text-[10px] flex-shrink-0">pressing</span>}
                 {showAlerts && <AlertChip item={item} requests={requests} openId={openAlertId} setOpenId={setOpenAlertId} />}
                 {isOwnProfile && (
                   <button onClick={() => handleRemoveWishlistItem(item)} className="text-text-faint text-xs bg-transparent border-0 cursor-pointer flex-shrink-0 hover:text-accent">
