@@ -40,6 +40,34 @@ function SignalBreakdown({ signal }) {
   )
 }
 
+const TREND = { faster: 'selling faster than it was six months ago', slower: 'selling slower than it was six months ago', steady: 'selling at about the same pace as six months ago' }
+
+function days(n) {
+  const v = Number(n)
+  return v < 1 ? 'under a day' : `${Math.round(v)} day${Math.round(v) === 1 ? '' : 's'}`
+}
+
+// How fast this pressing sells here. Aggregates only, and nothing shows until it rests on 3 or more sales.
+function SalesSpeed({ speed }) {
+  if (!speed || !speed.enough) return null
+  const lines = [
+    `Median time to sell: ${days(speed.median_days_to_sell)}${speed.fastest_days != null ? ` (fastest ${days(speed.fastest_days)}${speed.slowest_days != null ? `, slowest ${days(speed.slowest_days)}` : ''})` : ''}.`,
+    speed.sell_through_pct != null ? `${speed.sell_through_pct}% of listings end in a sale; the rest are withdrawn or cancelled.` : null,
+    speed.speed_trend ? `Lately ${TREND[speed.speed_trend]}.` : null,
+    speed.median_final_vs_first_ask_pct != null ? `Sells for ${Math.abs(speed.median_final_vs_first_ask_pct) < 0.5 ? 'the asking price' : `${Math.abs(speed.median_final_vs_first_ask_pct)}% ${speed.median_final_vs_first_ask_pct < 0 ? 'below' : 'above'} the first asking price`}, typically.` : null,
+    speed.active_listings > 0 ? `${speed.active_listings} listed now${speed.median_active_age_days != null ? `, the typical one for ${days(speed.median_active_age_days)}` : ''}.` : 'None listed right now.'
+  ].filter(Boolean)
+  return (
+    <div className="mt-3">
+      <p className="m-0 mb-1.5 font-mono text-[10px] tracking-wider uppercase text-text-faint">How fast it sells</p>
+      <div className="text-[12px] text-text-muted flex flex-col gap-0.5">
+        {lines.map((l) => <p key={l} className="m-0">{l}</p>)}
+        <p className="m-0 text-[11px] text-text-faint">Based on {speed.sold} sale{speed.sold === 1 ? '' : 's'} in the last 24 months. Trades excluded.</p>
+      </div>
+    </div>
+  )
+}
+
 function sourceNote(row) {
   if (row.source === 'discogs') return 'No sales here yet; Discogs suggestion only.'
   const sales = `${row.sales} sale${row.sales === 1 ? '' : 's'} here`
@@ -98,6 +126,7 @@ function GradePriceTable({ stats, highlightGrade, sleeveGrade = null }) {
           })}
         </tbody>
       </table>
+      <SalesSpeed speed={stats.speed} />
       <button type="button" onClick={() => setOpen((v) => !v)} className="mt-1.5 bg-transparent border-0 p-0 text-[12px] text-accent cursor-pointer">
         {open ? 'Hide details' : 'How are these worked out?'}
       </button>

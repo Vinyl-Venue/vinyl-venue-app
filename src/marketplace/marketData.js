@@ -92,12 +92,13 @@ export async function loadPressingPrice(discogsReleaseId) {
 export async function loadGradeStats(discogsReleaseId) {
   if (!discogsReleaseId) return null
   const rid = Number(discogsReleaseId)
-  const [stats, sig] = await Promise.all([
+  const [stats, sig, speed] = await Promise.all([
     supabase.rpc('pressing_grade_stats', { rid }),
-    supabase.rpc('pressing_price_signal', { rid })
+    supabase.rpc('pressing_price_signal', { rid }),
+    supabase.rpc('pressing_market_speed', { rid })
   ])
   if (stats.error || !stats.data) return null
-  return applyPriceSignal(stats.data, sig.error ? null : sig.data)
+  return { ...applyPriceSignal(stats.data, sig.error ? null : sig.data), speed: speed.error ? null : speed.data }
 }
 
 // Demand, speed of sale, sell-through and price cuts nudge the estimates by at most 10% (decided in the database,
