@@ -9,13 +9,22 @@ export function isExpired(request) {
   return request && new Date(request.expires_at) <= new Date()
 }
 
+// Whole days left on an active alert, or null when it has more than a week or has already lapsed.
+export function daysLeft(request) {
+  if (!request || isExpired(request)) return null
+  const d = Math.ceil((new Date(request.expires_at) - new Date()) / 86400000)
+  return d <= 7 ? Math.max(d, 1) : null
+}
+
 // Short status for a Most Wanted row: "Alert $38 · VG+ or better · 2 copies", "Alert paused", "Alert expired".
 export function requestSummary(request, liveCount) {
   if (!request) return null
   if (isExpired(request)) return 'Alert expired'
   if (!request.active) return 'Alert paused'
   const grade = request.min_media ? ` · ${request.min_media} or better` : ''
-  return `Alert ${money(request.max_price).replace('.00', '')}${grade}${liveCount ? ` · ${liveCount} cop${liveCount === 1 ? 'y' : 'ies'}` : ''}`
+  const left = daysLeft(request)
+  const ending = left ? ` · ends in ${left}d` : ''
+  return `Alert ${money(request.max_price).replace('.00', '')}${grade}${liveCount ? ` · ${liveCount} cop${liveCount === 1 ? 'y' : 'ies'}` : ''}${ending}`
 }
 
 // Standing requests on the owner's Most Wanted items, with the copies currently matching them.

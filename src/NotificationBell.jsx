@@ -6,6 +6,8 @@ import { useAuth } from './AuthContext'
 const TYPE_ICONS = {
   wishlist_match: '💿',
   want_match: '🎯',
+  want_expiring: '⏳',
+  want_expired: '⌛',
   auction_won: '🏆',
   auction_ended_sold: '💰',
   auction_ended_no_bids: '❌',
@@ -153,7 +155,8 @@ function NotificationBell() {
       )
     }
 
-    if (!n.type || n.type === 'wishlist_match') {
+    // Alert reminders point back at your own profile, where My Most Wanted lives (from_user_id is you).
+    if (!n.type || n.type === 'wishlist_match' || n.type === 'want_expiring' || n.type === 'want_expired') {
       return (
         <Link
           to={`/profile/${n.from_user_id}`}

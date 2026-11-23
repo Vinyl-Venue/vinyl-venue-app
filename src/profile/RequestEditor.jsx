@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { isExpired } from './useWantRequests'
+import { isExpired, daysLeft } from './useWantRequests'
 
 const GRADES = ['M', 'NM', 'VG+', 'VG', 'G+', 'G']
 
@@ -40,6 +40,22 @@ function RequestEditor({ item, request, matches, onSave, onRemove, onPause, onDi
 
   const inputClass = 'bg-bg border border-border text-text px-2 py-1.5 rounded text-sm'
 
+  // One tap: keep every saved setting and start a fresh 90 days.
+  async function handleRenew() {
+    setSaving(true)
+    setError('')
+    const message = await onSave({
+      maxPrice: Number(request.max_price),
+      minMedia: request.min_media || '',
+      minSleeve: request.min_sleeve || '',
+      scope: request.scope,
+      discogsReleaseId: request.discogs_release_id ? String(request.discogs_release_id) : ''
+    })
+    setSaving(false)
+    if (message) setError(message)
+  }
+  const left = daysLeft(request)
+
   return (
     <div className="mt-1 mb-2 ml-7 p-3 border border-border rounded bg-bg font-sans">
       <div className="flex items-baseline justify-between mb-2">
@@ -48,7 +64,16 @@ function RequestEditor({ item, request, matches, onSave, onRemove, onPause, onDi
       </div>
 
       {request && isExpired(request) && (
-        <p className="m-0 mb-2 text-xs text-[#c1666b]">This alert expired. Save to renew it for another 90 days.</p>
+        <p className="m-0 mb-2 text-xs text-[#c1666b]">
+          This alert expired.{' '}
+          <button type="button" onClick={handleRenew} disabled={saving} className="bg-transparent border-0 p-0 text-xs text-accent cursor-pointer underline">Renew for 90 days</button>
+        </p>
+      )}
+      {left && (
+        <p className="m-0 mb-2 text-xs text-[#b7791f]">
+          This alert ends in {left} day{left === 1 ? '' : 's'}.{' '}
+          <button type="button" onClick={handleRenew} disabled={saving} className="bg-transparent border-0 p-0 text-xs text-accent cursor-pointer underline">Renew for 90 days</button>
+        </p>
       )}
 
       <div className="grid grid-cols-[130px_1fr] gap-x-3 gap-y-2 items-center text-sm">
